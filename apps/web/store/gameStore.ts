@@ -8,7 +8,7 @@ interface GameStore {
   state: GameStateView | null;
   error: string | null;
   connected: boolean;
-  join: (name: string) => void;
+  join: (name: string, accessToken?: string) => void;
   clearError: () => void;
 }
 
@@ -26,10 +26,14 @@ export const useGameStore = create<GameStore>((set) => {
     state: null,
     error: null,
     connected: socket.connected,
-    join: (name: string) => {
-      socket.emit("lobby:join", { name }, (playerId: string) => {
-        set({ playerId, playerName: name });
-      });
+    join: (name: string, accessToken?: string) => {
+      socket.emit(
+        "lobby:join",
+        accessToken ? { name, accessToken } : { name },
+        (playerId: string) => {
+          set({ playerId, playerName: name });
+        },
+      );
     },
     clearError: () => set({ error: null }),
   };

@@ -2,32 +2,32 @@
 
 import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
+import { useAuthStore } from "../store/authStore";
+import { MatchHistory } from "./MatchHistory";
 
 export function JoinForm() {
-  const [name, setName] = useState("");
   const join = useGameStore((s) => s.join);
   const error = useGameStore((s) => s.error);
+  const profile = useAuthStore((s) => s.profile);
+  const session = useAuthStore((s) => s.session);
+  const signOut = useAuthStore((s) => s.signOut);
+  const [showHistory, setShowHistory] = useState(false);
+
+  if (!profile) return null;
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (name.trim()) join(name.trim());
-      }}
-    >
+    <div>
       <h1>Kuhhandel Online</h1>
-      <label htmlFor="playerName">Pseudo</label>
-      <input
-        id="playerName"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Ton pseudo"
-        autoFocus
-      />
-      <button type="submit" disabled={!name.trim()}>
+      <p>Connecté en tant que {profile.username}</p>
+      <button onClick={() => join(profile.username, session?.access_token)}>
         Rejoindre la partie
       </button>
+      <button onClick={() => setShowHistory((v) => !v)}>
+        {showHistory ? "Masquer" : "Voir"} mon historique
+      </button>
+      <button onClick={() => void signOut()}>Se déconnecter</button>
       {error && <p role="alert">{error}</p>}
-    </form>
+      {showHistory && <MatchHistory userId={profile.id} />}
+    </div>
   );
 }

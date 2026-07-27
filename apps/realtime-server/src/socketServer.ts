@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'node:http';
 import { Server, type Socket } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '@kuhhandel/shared-types';
 import { GameRoom } from './room/GameRoom.js';
+import { noopVerifier, type UserVerifier } from './auth/verifyUser.js';
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -17,6 +18,7 @@ type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 export function createSocketServer(
   httpServer: HttpServer,
   room: GameRoom = new GameRoom(),
+  verifyUser: UserVerifier = noopVerifier,
 ): AppServer {
   const io: AppServer = new Server(httpServer, { cors: { origin: '*' } });
   const playerIdBySocketId = new Map<string, string>();
@@ -47,16 +49,18 @@ export function createSocketServer(
 
   io.on('connection', (socket: AppSocket) => {
     socket.on('lobby:join', (payload, ack) => {
-      try {
-        const playerId = room.join(payload.name);
-        playerIdBySocketId.set(socket.id, playerId);
-        ack(playerId);
-        broadcastState();
-      } catch (error) {
-        socket.emit('error:action', {
-          message: error instanceof Error ? error.message : 'Unknown error.',
+      verifyUser(payload.accessToken)
+        .then((userId) => {
+          const playerId = room.join(payload.name, userId);
+          playerIdBySocketId.set(socket.id, playerId);
+          ack(playerId);
+          broadcastState();
+        })
+        .catch((error: unknown) => {
+          socket.emit('error:action', {
+            message: error instanceof Error ? error.message : 'Unknown error.',
+          });
         });
-      }
     });
 
     socket.on('lobby:start', () => {

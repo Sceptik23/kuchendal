@@ -13,6 +13,7 @@
   "dependencies": {
     "@kuhhandel/shared-types": "workspace:*",
     "@kuhhandel/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.110.8",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

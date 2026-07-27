@@ -32,7 +32,10 @@ export interface GameStateView {
 }
 
 export interface ClientToServerEvents {
-  'lobby:join': (payload: { name: string }, ack: (playerId: string) => void) => void;
+  'lobby:join': (
+    payload: { name: string; accessToken?: string },
+    ack: (playerId: string) => void,
+  ) => void;
   'lobby:start': () => void;
   'turn:startAuction': () => void;
   'turn:startKuhhandel': (payload: { targetId: string; species: string }) => void;

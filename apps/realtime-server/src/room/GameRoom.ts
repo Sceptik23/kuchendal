@@ -30,8 +30,28 @@ import type {
   SpeciesKey,
 } from '@kuhhandel/game-engine';
 import type { GameStateView, PlayerView, RoomStatus } from '@kuhhandel/shared-types';
+import { NullPersistenceAdapter, type GamePersistenceAdapter } from '../persistence/types.js';
+import {
+  SPECIES_FAMILY_VALUE,
+  STARTING_MONEY,
+  KUHHANDEL_TIE_BREAK_MAX_ROUNDS,
+  NO_BID_SELLER_KEEPS_FREE,
+  GAME_END_CONDITION,
+  REMAINING_MONEY_COUNTS_IN_SCORE,
+} from '@kuhhandel/game-engine';
 
 let playerIdCounter = 0;
+
+function rulesetConfigSnapshot() {
+  return {
+    speciesFamilyValue: SPECIES_FAMILY_VALUE,
+    startingMoney: STARTING_MONEY,
+    kuhhandelTieBreakMaxRounds: KUHHANDEL_TIE_BREAK_MAX_ROUNDS,
+    noBidSellerKeepsFree: NO_BID_SELLER_KEEPS_FREE,
+    gameEndCondition: GAME_END_CONDITION,
+    remainingMoneyCountsInScore: REMAINING_MONEY_COUNTS_IN_SCORE,
+  };
+}
 
 export class GameRoom {
   private status: RoomStatus = 'lobby';
@@ -40,13 +60,26 @@ export class GameRoom {
   private activePlayerIndex = 0;
   private auction: AuctionState | null = null;
   private kuhhandel: KuhhandelState | null = null;
+  private userIdByPlayerId = new Map<string, string | null>();
+  private gameIdPromise: Promise<string> | null = null;
 
   constructor(
     private readonly rng: RandomSource = Math.random,
     private readonly startingMoneyFactory: () => MoneyCard[] = createStartingMoney,
+    private readonly persistence: GamePersistenceAdapter = new NullPersistenceAdapter(),
   ) {}
 
-  join(name: string): string {
+  /** Fire-and-forget: persistence never blocks or throws back into gameplay. */
+  private withGameId(fn: (gameId: string) => Promise<void>): void {
+    this.gameIdPromise
+      ?.then((gameId) => {
+        if (gameId) return fn(gameId);
+        return undefined;
+      })
+      .catch((error) => console.error('[persistence]', error));
+  }
+
+  join(name: string, userId: string | null = null): string {
     if (this.status !== 'lobby') {
       throw new Error('Cannot join: the game has already started.');
     }
@@ -55,6 +88,7 @@ export class GameRoom {
     }
     const id = `player-${playerIdCounter++}`;
     this.players.push({ id, name, money: [], animals: [] });
+    this.userIdByPlayerId.set(id, userId);
     return id;
   }
 
@@ -69,6 +103,23 @@ export class GameRoom {
     this.players = this.players.map((p) => ({ ...p, money: this.startingMoneyFactory() }));
     this.activePlayerIndex = 0;
     this.status = 'in_progress';
+
+    const hostUserId = this.userIdByPlayerId.get(this.players[0]!.id) ?? null;
+    this.gameIdPromise = this.persistence
+      .createGame(hostUserId, rulesetConfigSnapshot())
+      .catch((error) => {
+        console.error('[persistence]', error);
+        return '';
+      });
+    this.withGameId(async (gameId) => {
+      for (const player of this.players) {
+        await this.persistence.addPlayer(
+          gameId,
+          this.userIdByPlayerId.get(player.id) ?? null,
+          false,
+        );
+      }
+    });
   }
 
   private get activePlayer(): Player {
@@ -98,6 +149,15 @@ export class GameRoom {
     this.kuhhandel = null;
     if (isGameOver(this.deck)) {
       this.status = 'finished';
+      const scored = this.players
+        .map((p) => ({ playerId: p.id, score: computeScore(p) }))
+        .sort((a, b) => b.score - a.score);
+      const results = scored.map(({ playerId, score }, index) => ({
+        userId: this.userIdByPlayerId.get(playerId) ?? null,
+        score,
+        rank: index + 1,
+      }));
+      this.withGameId((gameId) => this.persistence.finishGame(gameId, results));
       return;
     }
     this.activePlayerIndex = nextPlayerIndex(this.activePlayerIndex, this.players.length);
@@ -138,6 +198,7 @@ export class GameRoom {
     this.requireActivePlayer(playerId);
     const result = resolveAuction(this.requireAuction(), decision);
     this.players = applyAuctionResult(this.players, result);
+    this.withGameId((gameId) => this.persistence.logEvent(gameId, 'AUCTION_RESOLVED', result));
     this.endTurn();
   }
 
@@ -189,6 +250,7 @@ export class GameRoom {
     }
     const result = engRespondAccept(state);
     this.players = applyKuhhandelResult(this.players, result);
+    this.withGameId((gameId) => this.persistence.logEvent(gameId, 'KUHHANDEL_RESOLVED', result));
     this.endTurn();
   }
 
@@ -207,6 +269,7 @@ export class GameRoom {
     }
 
     this.players = applyKuhhandelResult(this.players, result);
+    this.withGameId((gameId) => this.persistence.logEvent(gameId, 'KUHHANDEL_RESOLVED', result));
     this.endTurn();
   }
 
