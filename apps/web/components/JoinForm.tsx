@@ -5,6 +5,7 @@ import { useGameStore } from "../store/gameStore";
 import { useAuthStore } from "../store/authStore";
 import { MatchHistory } from "./MatchHistory";
 import { Friends } from "./Friends";
+import { Profile } from "./Profile";
 import type { LobbyType, PublicRoomListing } from "@kuhhandel/shared-types";
 
 export function JoinForm() {
@@ -18,6 +19,7 @@ export function JoinForm() {
 
   const [showHistory, setShowHistory] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [lobbyType, setLobbyType] = useState<LobbyType>("public");
   const [createPassword, setCreatePassword] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -102,11 +104,15 @@ export function JoinForm() {
       <button onClick={() => setShowFriends((v) => !v)}>
         {showFriends ? "Masquer" : "Voir"} mes amis
       </button>
+      <button onClick={() => setShowProfile((v) => !v)}>
+        {showProfile ? "Masquer" : "Voir"} mon profil
+      </button>
       <button onClick={() => void signOut()}>Se déconnecter</button>
 
       {error && <p role="alert">{error}</p>}
       {showHistory && <MatchHistory userId={profile.id} />}
       {showFriends && <Friends userId={profile.id} />}
+      {showProfile && <Profile userId={profile.id} />}
     </div>
   );
 }

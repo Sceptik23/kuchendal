@@ -73,4 +73,66 @@ export class SupabasePersistenceAdapter implements GamePersistenceAdapter {
       .insert({ game_id: gameId, turn_number: turnNumber, state_jsonb: state as object });
     if (error) throw error;
   }
+
+  async loadCareerStats(userId: string): Promise<unknown | null> {
+    const { data, error } = await this.client
+      .from("users")
+      .select("career_stats")
+      .eq("id", userId)
+      .single();
+    if (error) throw error;
+    const stats = data.career_stats as Record<string, unknown>;
+    return stats && Object.keys(stats).length > 0 ? stats : null;
+  }
+
+  private async unlockByKeys(
+    catalogTable: "badges" | "achievements" | "titles",
+    junctionTable: "user_badges" | "user_achievements" | "user_titles",
+    junctionKeyColumn: "badge_id" | "achievement_id" | "title_id",
+    userId: string,
+    keys: string[],
+  ): Promise<void> {
+    if (keys.length === 0) return;
+    const { data: rows, error: lookupError } = await this.client
+      .from(catalogTable)
+      .select("id, key")
+      .in("key", keys);
+    if (lookupError) throw lookupError;
+
+    const inserts = (rows ?? []).map((row: { id: string }) => ({
+      user_id: userId,
+      [junctionKeyColumn]: row.id,
+    }));
+    if (inserts.length === 0) return;
+
+    const { error } = await this.client
+      .from(junctionTable)
+      .upsert(inserts, { onConflict: `user_id,${junctionKeyColumn}`, ignoreDuplicates: true });
+    if (error) throw error;
+  }
+
+  async saveCareerProgress(
+    userId: string,
+    stats: unknown,
+    newlyUnlockedBadgeKeys: string[],
+    newlyUnlockedAchievementKeys: string[],
+    newlyUnlockedTitleKeys: string[],
+  ): Promise<void> {
+    const s = stats as { xp: number; level: number };
+    const { error } = await this.client
+      .from("users")
+      .update({ career_stats: stats as object, xp: s.xp, level: s.level })
+      .eq("id", userId);
+    if (error) throw error;
+
+    await this.unlockByKeys("badges", "user_badges", "badge_id", userId, newlyUnlockedBadgeKeys);
+    await this.unlockByKeys(
+      "achievements",
+      "user_achievements",
+      "achievement_id",
+      userId,
+      newlyUnlockedAchievementKeys,
+    );
+    await this.unlockByKeys("titles", "user_titles", "title_id", userId, newlyUnlockedTitleKeys);
+  }
 }

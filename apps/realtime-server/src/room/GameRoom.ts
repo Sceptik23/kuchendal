@@ -31,6 +31,8 @@ import type {
 } from '@kuhhandel/game-engine';
 import type { GameStateView, PlayerView, RoomStatus } from '@kuhhandel/shared-types';
 import { NullPersistenceAdapter, type GamePersistenceAdapter } from '../persistence/types.js';
+import { GameStatsTracker } from './GameStatsTracker.js';
+import { awardGameProgress } from '../meta/awardGameProgress.js';
 import {
   SPECIES_FAMILY_VALUE,
   STARTING_MONEY,
@@ -66,6 +68,8 @@ export class GameRoom {
   private gameIdPromise: Promise<string> | null = null;
   private botCounter = 0;
   private turnNumber = 0;
+  private statsTracker = new GameStatsTracker();
+  private currentAuctionBidderIds: string[] = [];
 
   constructor(
     private readonly rng: RandomSource = Math.random,
@@ -244,8 +248,22 @@ export class GameRoom {
         rank: index + 1,
       }));
       this.withGameId((gameId) => this.persistence.finishGame(gameId, results));
+
+      const topScore = scored[0]!.score;
+      const winnerIds = new Set(scored.filter((s) => s.score === topScore).map((s) => s.playerId));
+      const summaries = this.statsTracker.buildSummaries(this.players, winnerIds);
+      for (const player of this.players) {
+        const userId = this.userIdByPlayerId.get(player.id);
+        if (!userId) continue; // guests/bots have no cross-game progression
+        const summary = summaries.get(player.id);
+        if (!summary) continue;
+        awardGameProgress(this.persistence, userId, summary).catch((error: unknown) =>
+          console.error('[meta]', error),
+        );
+      }
       return;
     }
+    this.statsTracker.recordLeaderCheckpoint(this.players);
     this.activePlayerIndex = nextPlayerIndex(this.activePlayerIndex, this.players.length);
     this.turnNumber += 1;
     this.withGameId((gameId) =>
@@ -269,6 +287,7 @@ export class GameRoom {
     const card = this.deck[0]!;
     this.deck = this.deck.slice(1);
     const otherIds = this.players.filter((p) => p.id !== playerId).map((p) => p.id);
+    this.currentAuctionBidderIds = otherIds;
     this.auction = startAuction(card, playerId, otherIds);
     this.runBotLoop();
   }
@@ -281,6 +300,7 @@ export class GameRoom {
   placeBid(playerId: string, amount: number): void {
     this.requireActionable();
     this.auction = engPlaceBid(this.requireAuction(), playerId, amount);
+    this.statsTracker.onBid(playerId);
   }
 
   pass(playerId: string): void {
@@ -294,6 +314,11 @@ export class GameRoom {
     this.requireActivePlayer(playerId);
     const result = resolveAuction(this.requireAuction(), decision);
     this.players = applyAuctionResult(this.players, result);
+    this.statsTracker.onAuctionResolved(result, playerId, this.currentAuctionBidderIds);
+    if (isGameOver(this.deck)) {
+      const buyer = this.findPlayer(result.cardGoesTo);
+      this.statsTracker.onFinalCardResolved(buyer.id, result.card.species, buyer.animals);
+    }
     this.withGameId((gameId) => this.persistence.logEvent(gameId, 'AUCTION_RESOLVED', result));
     this.endTurn();
     this.runBotLoop();
@@ -337,6 +362,9 @@ export class GameRoom {
       throw new Error('Only the initiator submits the first secret offer.');
     }
     const cards = this.resolveOffer(playerId, moneyCardIds);
+    const offerTotal = cards.reduce((sum, c) => sum + c.value, 0);
+    const moneyBeforeOffer = this.findPlayer(playerId).money.reduce((sum, c) => sum + c.value, 0);
+    this.statsTracker.onKuhhandelOfferSubmitted(playerId, offerTotal, moneyBeforeOffer);
     this.kuhhandel = submitInitiatorOffer(state, cards, state.tieRound);
     this.runBotLoop();
   }
@@ -349,6 +377,7 @@ export class GameRoom {
     }
     const result = engRespondAccept(state);
     this.players = applyKuhhandelResult(this.players, result);
+    this.statsTracker.onKuhhandelAccepted(state.initiatorId, state.targetId);
     this.withGameId((gameId) => this.persistence.logEvent(gameId, 'KUHHANDEL_RESOLVED', result));
     this.endTurn();
     this.runBotLoop();
@@ -361,12 +390,26 @@ export class GameRoom {
       throw new Error('Only the target of the Kuhhandel can respond.');
     }
     const cards = this.resolveOffer(playerId, moneyCardIds);
+    this.statsTracker.onKuhhandelCountered(playerId);
     const result = engRespondCounter(state, cards);
 
     if (result.type === 'tie_reoffer_needed') {
       this.kuhhandel = { ...state, stage: 'awaiting_initiator_offer', tieRound: result.tieRound };
       return;
     }
+    if (result.type === 'accept') {
+      throw new Error('Unreachable: respondCounter never resolves via accept.');
+    }
+
+    const initiatorOfferTotal = (state.initiatorOffer ?? []).reduce((sum, c) => sum + c.value, 0);
+    const targetOfferTotal = cards.reduce((sum, c) => sum + c.value, 0);
+    this.statsTracker.onKuhhandelCounterResolved(
+      result,
+      state.initiatorId,
+      state.targetId,
+      initiatorOfferTotal,
+      targetOfferTotal,
+    );
 
     this.players = applyKuhhandelResult(this.players, result);
     this.withGameId((gameId) => this.persistence.logEvent(gameId, 'KUHHANDEL_RESOLVED', result));

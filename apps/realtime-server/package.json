@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@kuhhandel/game-engine": "workspace:*",
+    "@kuhhandel/meta-engine": "workspace:*",
     "@kuhhandel/shared-types": "workspace:*",
     "@supabase/supabase-js": "^2.110.8",
     "socket.io": "^4.8.3"

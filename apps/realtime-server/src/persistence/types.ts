@@ -25,6 +25,16 @@ export interface GamePersistenceAdapter {
    * rushed reconstruction here).
    */
   saveSnapshot(gameId: string, turnNumber: number, state: unknown): Promise<void>;
+
+  /** Phase 6 (07_META_GAME.md): cross-game progression, stored per user_id. */
+  loadCareerStats(userId: string): Promise<unknown | null>;
+  saveCareerProgress(
+    userId: string,
+    stats: unknown,
+    newlyUnlockedBadgeKeys: string[],
+    newlyUnlockedAchievementKeys: string[],
+    newlyUnlockedTitleKeys: string[],
+  ): Promise<void>;
 }
 
 export class NullPersistenceAdapter implements GamePersistenceAdapter {
@@ -35,4 +45,8 @@ export class NullPersistenceAdapter implements GamePersistenceAdapter {
   async logEvent(): Promise<void> {}
   async finishGame(): Promise<void> {}
   async saveSnapshot(): Promise<void> {}
+  async loadCareerStats(): Promise<null> {
+    return null;
+  }
+  async saveCareerProgress(): Promise<void> {}
 }

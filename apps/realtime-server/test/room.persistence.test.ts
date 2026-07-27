@@ -8,6 +8,8 @@ function fakeAdapter(): GamePersistenceAdapter & {
   logEvent: ReturnType<typeof vi.fn>;
   finishGame: ReturnType<typeof vi.fn>;
   saveSnapshot: ReturnType<typeof vi.fn>;
+  loadCareerStats: ReturnType<typeof vi.fn>;
+  saveCareerProgress: ReturnType<typeof vi.fn>;
 } {
   return {
     createGame: vi.fn().mockResolvedValue("game-123"),
@@ -15,6 +17,8 @@ function fakeAdapter(): GamePersistenceAdapter & {
     logEvent: vi.fn().mockResolvedValue(undefined),
     finishGame: vi.fn().mockResolvedValue(undefined),
     saveSnapshot: vi.fn().mockResolvedValue(undefined),
+    loadCareerStats: vi.fn().mockResolvedValue(null),
+    saveCareerProgress: vi.fn().mockResolvedValue(undefined),
   };
 }
 
