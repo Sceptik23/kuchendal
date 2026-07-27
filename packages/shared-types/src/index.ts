@@ -1,1 +1,1 @@
-export const SHARED_TYPES_VERSION = "0.0.0";
+export const SHARED_TYPES_VERSION = '0.0.0';
