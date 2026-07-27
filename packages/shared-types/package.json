@@ -11,6 +11,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@kuhhandel/game-engine": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.7.2"
   }

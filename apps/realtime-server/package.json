@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@kuhhandel/game-engine": "workspace:*",
-    "@kuhhandel/shared-types": "workspace:*"
+    "@kuhhandel/shared-types": "workspace:*",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "socket.io-client": "^4.8.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
