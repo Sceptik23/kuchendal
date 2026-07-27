@@ -15,6 +15,16 @@ export interface GamePersistenceAdapter {
     gameId: string,
     results: { userId: string | null; score: number; rank: number }[],
   ): Promise<void>;
+  /**
+   * Persists a full serialized snapshot of the engine state after a turn
+   * (03_ARCHITECTURE.md §6). Scope note: Phase 5 saves snapshots for
+   * history/audit and as groundwork for a future "resume" feature — it does
+   * not yet reconstruct a live GameRoom from a saved snapshot (rebuilding
+   * the in-progress auction/Kuhhandel sub-state machines faithfully is
+   * substantial enough to warrant its own follow-up phase rather than a
+   * rushed reconstruction here).
+   */
+  saveSnapshot(gameId: string, turnNumber: number, state: unknown): Promise<void>;
 }
 
 export class NullPersistenceAdapter implements GamePersistenceAdapter {
@@ -24,4 +34,5 @@ export class NullPersistenceAdapter implements GamePersistenceAdapter {
   async addPlayer(): Promise<void> {}
   async logEvent(): Promise<void> {}
   async finishGame(): Promise<void> {}
+  async saveSnapshot(): Promise<void> {}
 }

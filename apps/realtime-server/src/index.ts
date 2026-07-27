@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { existsSync } from "node:fs";
 import { GAME_ENGINE_VERSION } from "@kuhhandel/game-engine";
 import { createSocketServer } from "./socketServer.js";
-import { GameRoom } from "./room/GameRoom.js";
+import { RoomManager } from "./rooms/RoomManager.js";
 import { NullPersistenceAdapter, type GamePersistenceAdapter } from "./persistence/types.js";
 import { SupabasePersistenceAdapter } from "./persistence/SupabasePersistenceAdapter.js";
 import { noopVerifier, type UserVerifier } from "./auth/verifyUser.js";
@@ -38,7 +38,8 @@ if (isMainModule) {
   }
 
   const httpServer = createServer();
-  createSocketServer(httpServer, new GameRoom(Math.random, undefined, persistence), verifyUser);
+  const roomManager = new RoomManager(() => persistence);
+  createSocketServer(httpServer, roomManager, verifyUser);
   httpServer.listen(port, () => {
     console.log(`Kuhhandel realtime server listening on :${port}`);
   });

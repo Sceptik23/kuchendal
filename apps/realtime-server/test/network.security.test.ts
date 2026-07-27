@@ -8,7 +8,7 @@ import type {
   ServerToClientEvents,
 } from '@kuhhandel/shared-types';
 import { createSocketServer } from '../src/socketServer.js';
-import { GameRoom } from '../src/room/GameRoom.js';
+import { RoomManager } from '../src/rooms/RoomManager.js';
 
 type TypedClientSocket = ClientSocket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -42,7 +42,7 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
 
   beforeEach(async () => {
     httpServer = createServer();
-    createSocketServer(httpServer, new GameRoom(() => 0));
+    createSocketServer(httpServer, new RoomManager(undefined, () => 0));
     await new Promise<void>((resolve) => httpServer.listen(0, resolve));
     port = (httpServer.address() as AddressInfo).port;
     clients = [];
@@ -62,10 +62,16 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
     return socket;
   }
 
-  function join(socket: TypedClientSocket, name: string): Promise<string> {
-    return new Promise((resolve) => {
-      socket.emit('lobby:join', { name }, (playerId: string) => resolve(playerId));
-    });
+  function createRoom(socket: TypedClientSocket): Promise<string> {
+    return new Promise((resolve) => socket.emit('lobby:create', { type: 'public' }, resolve));
+  }
+
+  async function join(socket: TypedClientSocket, code: string, name: string): Promise<string> {
+    const result = await new Promise<{ playerId: string } | { error: string }>((resolve) =>
+      socket.emit('lobby:join', { code, name }, resolve),
+    );
+    if ('error' in result) throw new Error(result.error);
+    return result.playerId;
   }
 
   it('hides the secret offer from the target and from a bystander before reveal', async () => {
@@ -73,9 +79,10 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
     const s2 = connect();
     const s3 = connect();
 
-    await join(s1, 'p1');
-    const p2 = await join(s2, 'p2');
-    const p3 = await join(s3, 'p3');
+    const code = await createRoom(s1);
+    await join(s1, code, 'p1');
+    const p2 = await join(s2, code, 'p2');
+    const p3 = await join(s3, code, 'p3');
 
     s1.emit('lobby:start');
     await waitForState(s1, (st) => st.status === 'in_progress');

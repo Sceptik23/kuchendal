@@ -1,11 +1,17 @@
-import type { Server as HttpServer } from 'node:http';
-import { Server, type Socket } from 'socket.io';
-import type { ClientToServerEvents, ServerToClientEvents } from '@kuhhandel/shared-types';
-import { GameRoom } from './room/GameRoom.js';
-import { noopVerifier, type UserVerifier } from './auth/verifyUser.js';
+import type { Server as HttpServer } from "node:http";
+import { Server, type Socket } from "socket.io";
+import type { ClientToServerEvents, ServerToClientEvents } from "@kuhhandel/shared-types";
+import { RoomManager } from "./rooms/RoomManager.js";
+import type { GameRoom } from "./room/GameRoom.js";
+import { noopVerifier, type UserVerifier } from "./auth/verifyUser.js";
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
+
+interface SocketInfo {
+  roomCode: string;
+  playerId: string;
+}
 
 /**
  * The server is the sole source of truth for game state (03_ARCHITECTURE.md
@@ -17,92 +23,139 @@ type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
  */
 export function createSocketServer(
   httpServer: HttpServer,
-  room: GameRoom = new GameRoom(),
+  roomManager: RoomManager = new RoomManager(),
   verifyUser: UserVerifier = noopVerifier,
 ): AppServer {
-  const io: AppServer = new Server(httpServer, { cors: { origin: '*' } });
-  const playerIdBySocketId = new Map<string, string>();
+  const io: AppServer = new Server(httpServer, { cors: { origin: "*" } });
+  const socketInfoBySocketId = new Map<string, SocketInfo>();
 
-  function broadcastState(): void {
-    for (const [socketId, playerId] of playerIdBySocketId) {
+  function broadcastRoom(roomCode: string, room: GameRoom): void {
+    for (const [socketId, info] of socketInfoBySocketId) {
+      if (info.roomCode !== roomCode) continue;
       const socket = io.sockets.sockets.get(socketId);
-      socket?.emit('state:update', room.getViewFor(playerId));
+      socket?.emit("state:update", room.getViewFor(info.playerId));
     }
   }
 
-  function runAction(socket: AppSocket, action: () => void): void {
+  function emitError(socket: AppSocket, error: unknown): void {
+    socket.emit("error:action", {
+      message: error instanceof Error ? error.message : "Unknown error.",
+    });
+  }
+
+  function getInfo(socket: AppSocket): SocketInfo {
+    const info = socketInfoBySocketId.get(socket.id);
+    if (!info) throw new Error("You must join a room before acting.");
+    return info;
+  }
+
+  function runAction(socket: AppSocket, action: (room: GameRoom, info: SocketInfo) => void): void {
     try {
-      action();
-      broadcastState();
+      const info = getInfo(socket);
+      const room = roomManager.getRoom(info.roomCode);
+      if (!room) throw new Error("This room no longer exists.");
+      action(room, info);
+      broadcastRoom(info.roomCode, room);
     } catch (error) {
-      socket.emit('error:action', {
-        message: error instanceof Error ? error.message : 'Unknown error.',
-      });
+      emitError(socket, error);
     }
   }
 
-  function requirePlayerId(socket: AppSocket): string {
-    const playerId = playerIdBySocketId.get(socket.id);
-    if (!playerId) throw new Error('You must join the lobby before acting.');
-    return playerId;
-  }
+  io.on("connection", (socket: AppSocket) => {
+    socket.on("lobby:create", (payload, ack) => {
+      try {
+        const { code } = roomManager.createRoom(
+          payload.password !== undefined
+            ? { type: payload.type, password: payload.password }
+            : { type: payload.type },
+        );
+        ack(code);
+      } catch (error) {
+        emitError(socket, error);
+      }
+    });
 
-  io.on('connection', (socket: AppSocket) => {
-    socket.on('lobby:join', (payload, ack) => {
+    socket.on("lobby:list", (ack) => {
+      ack(roomManager.listPublicRooms());
+    });
+
+    socket.on("lobby:join", (payload, ack) => {
       verifyUser(payload.accessToken)
         .then((userId) => {
+          roomManager.authorizeJoin(payload.code, payload.password);
+          const room = roomManager.getRoom(payload.code);
+          if (!room) throw new Error(`Room not found: ${payload.code}`);
+
           const playerId = room.join(payload.name, userId);
-          playerIdBySocketId.set(socket.id, playerId);
-          ack(playerId);
-          broadcastState();
+          socketInfoBySocketId.set(socket.id, { roomCode: payload.code, playerId });
+          ack({ playerId });
+          broadcastRoom(payload.code, room);
         })
         .catch((error: unknown) => {
-          socket.emit('error:action', {
-            message: error instanceof Error ? error.message : 'Unknown error.',
-          });
+          ack({ error: error instanceof Error ? error.message : "Unknown error." });
         });
     });
 
-    socket.on('lobby:start', () => {
-      runAction(socket, () => room.start());
+    socket.on("lobby:start", () => {
+      runAction(socket, (room) => room.start());
     });
 
-    socket.on('turn:startAuction', () => {
-      runAction(socket, () => room.startAuction(requirePlayerId(socket)));
+    socket.on("host:kick", ({ playerId }) => {
+      runAction(socket, (room, info) => {
+        room.kickPlayer(info.playerId, playerId);
+        for (const [socketId, other] of socketInfoBySocketId) {
+          if (other.roomCode === info.roomCode && other.playerId === playerId) {
+            io.sockets.sockets.get(socketId)?.emit("lobby:kicked");
+            socketInfoBySocketId.delete(socketId);
+          }
+        }
+      });
     });
 
-    socket.on('turn:startKuhhandel', ({ targetId, species }) => {
-      runAction(socket, () =>
-        room.startKuhhandel(requirePlayerId(socket), targetId, species as never),
+    socket.on("host:transfer", ({ playerId }) => {
+      runAction(socket, (room, info) => room.transferHost(info.playerId, playerId));
+    });
+
+    socket.on("host:addBot", () => {
+      runAction(socket, (room, info) => room.addBot(info.playerId));
+    });
+
+    socket.on("turn:startAuction", () => {
+      runAction(socket, (room, info) => room.startAuction(info.playerId));
+    });
+
+    socket.on("turn:startKuhhandel", ({ targetId, species }) => {
+      runAction(socket, (room, info) =>
+        room.startKuhhandel(info.playerId, targetId, species as never),
       );
     });
 
-    socket.on('auction:bid', ({ amount }) => {
-      runAction(socket, () => room.placeBid(requirePlayerId(socket), amount));
+    socket.on("auction:bid", ({ amount }) => {
+      runAction(socket, (room, info) => room.placeBid(info.playerId, amount));
     });
 
-    socket.on('auction:pass', () => {
-      runAction(socket, () => room.pass(requirePlayerId(socket)));
+    socket.on("auction:pass", () => {
+      runAction(socket, (room, info) => room.pass(info.playerId));
     });
 
-    socket.on('auction:sellerDecision', ({ decision }) => {
-      runAction(socket, () => room.sellerDecision(requirePlayerId(socket), decision));
+    socket.on("auction:sellerDecision", ({ decision }) => {
+      runAction(socket, (room, info) => room.sellerDecision(info.playerId, decision));
     });
 
-    socket.on('kuhhandel:submitOffer', ({ moneyCardIds }) => {
-      runAction(socket, () => room.submitOffer(requirePlayerId(socket), moneyCardIds));
+    socket.on("kuhhandel:submitOffer", ({ moneyCardIds }) => {
+      runAction(socket, (room, info) => room.submitOffer(info.playerId, moneyCardIds));
     });
 
-    socket.on('kuhhandel:accept', () => {
-      runAction(socket, () => room.respondAccept(requirePlayerId(socket)));
+    socket.on("kuhhandel:accept", () => {
+      runAction(socket, (room, info) => room.respondAccept(info.playerId));
     });
 
-    socket.on('kuhhandel:counter', ({ moneyCardIds }) => {
-      runAction(socket, () => room.respondCounter(requirePlayerId(socket), moneyCardIds));
+    socket.on("kuhhandel:counter", ({ moneyCardIds }) => {
+      runAction(socket, (room, info) => room.respondCounter(info.playerId, moneyCardIds));
     });
 
-    socket.on('disconnect', () => {
-      playerIdBySocketId.delete(socket.id);
+    socket.on("disconnect", () => {
+      socketInfoBySocketId.delete(socket.id);
     });
   });
 

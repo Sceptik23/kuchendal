@@ -7,12 +7,14 @@ function fakeAdapter(): GamePersistenceAdapter & {
   addPlayer: ReturnType<typeof vi.fn>;
   logEvent: ReturnType<typeof vi.fn>;
   finishGame: ReturnType<typeof vi.fn>;
+  saveSnapshot: ReturnType<typeof vi.fn>;
 } {
   return {
     createGame: vi.fn().mockResolvedValue("game-123"),
     addPlayer: vi.fn().mockResolvedValue(undefined),
     logEvent: vi.fn().mockResolvedValue(undefined),
     finishGame: vi.fn().mockResolvedValue(undefined),
+    saveSnapshot: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -58,6 +60,28 @@ describe("GameRoom — persistence side channel", () => {
       "game-123",
       "AUCTION_RESOLVED",
       expect.objectContaining({ cardGoesTo: p2 }),
+    );
+  });
+
+  it("saves a snapshot once a turn advances to the next player", async () => {
+    const persistence = fakeAdapter();
+    const room = new GameRoom(() => 0, undefined, persistence);
+    const p1 = room.join("p1", "user-1");
+    const p2 = room.join("p2", "user-2");
+    const p3 = room.join("p3", "user-3");
+    room.start();
+    await flushMicrotasks();
+
+    room.startAuction(p1);
+    room.placeBid(p2, 10);
+    room.pass(p3);
+    room.sellerDecision(p1, "sell");
+    await flushMicrotasks();
+
+    expect(persistence.saveSnapshot).toHaveBeenCalledWith(
+      "game-123",
+      1,
+      expect.objectContaining({ activePlayerIndex: 1 }),
     );
   });
 

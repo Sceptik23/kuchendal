@@ -66,4 +66,11 @@ export class SupabasePersistenceAdapter implements GamePersistenceAdapter {
       if (error) throw error;
     }
   }
+
+  async saveSnapshot(gameId: string, turnNumber: number, state: unknown): Promise<void> {
+    const { error } = await this.client
+      .from("game_snapshots")
+      .insert({ game_id: gameId, turn_number: turnNumber, state_jsonb: state as object });
+    if (error) throw error;
+  }
 }
