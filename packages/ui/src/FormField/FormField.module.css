@@ -1,0 +1,14 @@
+.field {
+  font-family: var(--kd-font-body);
+  font-size: 14px;
+  color: var(--kd-text);
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-sm);
+  padding: 10px 14px;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--kd-accent-cyan);
+}

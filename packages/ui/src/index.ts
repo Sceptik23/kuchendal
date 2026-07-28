@@ -14,3 +14,6 @@ export type { PlayingCardProps, PlayingCardVariant } from './PlayingCard/Playing
 
 export { ToastNarrator } from './ToastNarrator/ToastNarrator';
 export type { ToastNarratorProps } from './ToastNarrator/ToastNarrator';
+
+export { Input } from './FormField/Input';
+export { Select } from './FormField/Select';
