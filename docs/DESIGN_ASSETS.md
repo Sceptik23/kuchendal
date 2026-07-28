@@ -7,10 +7,10 @@
 > tant que les assets/décisions ne sont pas fournis.
 
 ## 0. Direction artistique générale (à valider en premier)
-- [ ] Palette de couleurs définitive (base : terreuse et vive — vert
+- [x] Palette de couleurs définitive (base : terreuse et vive — vert
       prairie, orange grange, jaune paille — cf. `05_UI_UX.md` §1)
-- [ ] Typographie (titres + texte courant)
-- [ ] Ton visuel de référence (3-5 exemples/inspirations : cartoon sans être
+- [x] Typographie (titres + texte courant)
+- [x] Ton visuel de référence (3-5 exemples/inspirations : cartoon sans être
       enfantin, un peu d'humour/clin d'œil)
 - [ ] Logo / nom affiché ("Kuchendal")
 - [ ] Favicon
@@ -18,41 +18,41 @@
 ## 1. Cartes animaux (10 espèces × 4 exemplaires)
 Pour chaque espèce ci-dessous : une illustration recto (face visible) et
 un dos de carte commun à toutes.
-- [ ] Cochon (valeur famille 100)
-- [ ] Oie (200)
-- [ ] Mouton (300)
-- [ ] Chèvre (400)
-- [ ] Âne (500)
-- [ ] Chien (650)
-- [ ] Chat (800)
-- [ ] Cheval (1000)
+- [x] Cochon (valeur famille 100)
+- [x] Oie (200)
+- [x] Mouton (300)
+- [x] Chèvre (400)
+- [x] Âne (500)
+- [x] Chien (650)
+- [x] Chat (800)
+- [x] Cheval (1000)
 - [ ] Bœuf (1200)
-- [ ] Vache (1500)
+- [x] Vache (1500)
 - [ ] Dos de carte animal (commun)
 - [ ] États visuels : face visible, face cachée, sélectionnée, en cours
       d'enchère (léger effet de surbrillance/tension)
 
 ## 2. Cartes argent (6 valeurs)
-- [ ] Billet 0 (bluff)
-- [ ] Billet 10
-- [ ] Billet 50
-- [ ] Billet 100
-- [ ] Billet 200
-- [ ] Billet 500
+- [x] Billet 0 (bluff)
+- [x] Billet 10
+- [x] Billet 50
+- [x] Billet 100
+- [x] Billet 200
+- [x] Billet 500
 - [ ] Dos de carte argent (pour les offres secrètes cachées)
 
 ## 3. Composants d'interface (design system)
 D'après `05_UI_UX.md` §5 — chaque composant existe déjà en HTML brut, à
 habiller :
 - [ ] `PlayingCard` (animal/argent) — déjà listé en §1-2 ci-dessus
-- [ ] `PlayerAvatarBadge` (avatar + statut en ligne/absent + titre actif)
+- [x] `PlayerAvatarBadge` (avatar + statut en ligne/absent + titre actif)
 - [ ] `BidTicker` (historique d'enchère en direct, montant qui monte)
 - [ ] `SecretOfferTray` (plateau de composition d'offre secrète Kuhhandel)
-- [ ] `ToastNarrator` (bulle de commentaire du narrateur)
+- [x] `ToastNarrator` (bulle de commentaire du narrateur)
 - [ ] `RewardModal` (déblocage badge/succès/titre, avec animation d'entrée)
 - [ ] `HallOfShameCard` (carte de distinction humoristique de fin de partie)
-- [ ] Boutons (primaire/secondaire/danger), inputs, selects — style de base
-- [ ] Icônes d'état d'information : "connu avec certitude" (✅ actuel),
+- [x] Boutons (primaire/secondaire/danger), inputs, selects — style de base
+- [x] Icônes d'état d'information : "connu avec certitude" (✅ actuel),
       "partiellement connu" (🔒 actuel), à remplacer par de vraies icônes
       cohérentes visuellement (cf. `05_UI_UX.md` §4)
 
