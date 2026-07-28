@@ -8,3 +8,6 @@ export type { RarityFrameProps, Rarity } from './RarityFrame/RarityFrame';
 
 export { PlayerAvatarBadge } from './PlayerAvatarBadge/PlayerAvatarBadge';
 export type { PlayerAvatarBadgeProps } from './PlayerAvatarBadge/PlayerAvatarBadge';
+
+export { PlayingCard } from './PlayingCard/PlayingCard';
+export type { PlayingCardProps, PlayingCardVariant } from './PlayingCard/PlayingCard';
