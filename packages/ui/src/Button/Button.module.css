@@ -1,0 +1,32 @@
+.button {
+  font-family: var(--kd-font-display);
+  font-size: 15px;
+  border-radius: var(--kd-radius-sm);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.primary {
+  padding: 14px 26px;
+  background: var(--kd-accent-green);
+  color: var(--kd-bg);
+}
+
+.secondary {
+  padding: 12px 24px;
+  background: transparent;
+  border: 2px solid var(--kd-accent-cyan);
+  color: var(--kd-text);
+}
+
+.danger {
+  padding: 14px 26px;
+  background: var(--kd-accent-pink);
+  color: var(--kd-text);
+}
