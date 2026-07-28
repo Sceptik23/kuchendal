@@ -5,7 +5,7 @@ import { useGameStore } from "../store/gameStore";
 import { useAuthStore } from "../store/authStore";
 import { usePresenceStore } from "../store/presenceStore";
 import { AuthForm } from "../components/AuthForm";
-import { JoinForm } from "../components/JoinForm";
+import { Hub } from "../components/Hub";
 import { Lobby } from "../components/Lobby";
 import { GameTable } from "../components/GameTable";
 
@@ -27,7 +27,7 @@ export default function HomePage() {
   }
 
   if (!playerId || !state) {
-    return <JoinForm />;
+    return <Hub />;
   }
 
   if (state.status === "lobby") {

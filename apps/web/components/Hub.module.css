@@ -1,0 +1,128 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+  color: var(--kd-text);
+  font-family: var(--kd-font-body);
+}
+
+.error {
+  color: var(--kd-accent-pink);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 28px;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.card {
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardTitle {
+  font-family: var(--kd-font-display);
+  font-size: 14px;
+  margin: 0;
+}
+
+.roomList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roomItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--kd-border);
+  font-size: 13px;
+}
+
+.roomItem:last-child {
+  border-bottom: none;
+}
+
+.profileCard {
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-lg);
+  padding: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profileName {
+  margin-top: 12px;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.titlePill {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: var(--kd-font-display);
+  font-size: 11px;
+  color: var(--kd-accent-yellow);
+  background: var(--kd-bg);
+  border: 1px solid var(--kd-accent-yellow);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--kd-border);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.statValue {
+  font-family: var(--kd-font-display);
+  font-size: 18px;
+  color: var(--kd-accent-green);
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--kd-text-subtle);
+}
