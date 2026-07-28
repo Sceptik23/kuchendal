@@ -52,33 +52,28 @@ export function Friends({ userId }: { userId: string }) {
         className={styles.searchInput}
       />
 
-      {results.length > 0 && (
-        <div className={styles.section}>
-          <h4 className={styles.sectionTitle}>Résultats de recherche</h4>
-          <ul className={styles.list}>
-            {results.map((u) => (
-              <li key={u.id} className={styles.listItem}>
-                <div className={styles.friendInfo}>
-                  <span className={styles.friendName}>{u.username}</span>
-                </div>
-                <div className={styles.actions}>
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      sendFriendRequest(userId, u.id).then(() => {
-                        setResults((r) => r.filter((x) => x.id !== u.id));
-                        void refresh();
-                      })
-                    }
-                  >
-                    Ajouter
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <ul className={styles.list}>
+        {results.map((u) => (
+          <li key={u.id} className={styles.listItem}>
+            <div className={styles.friendInfo}>
+              <span className={styles.friendName}>{u.username}</span>
+            </div>
+            <div className={styles.actions}>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  sendFriendRequest(userId, u.id).then(() => {
+                    setResults((r) => r.filter((x) => x.id !== u.id));
+                    void refresh();
+                  })
+                }
+              >
+                Ajouter
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
 
       {incoming.length > 0 && (
         <div className={styles.section}>
