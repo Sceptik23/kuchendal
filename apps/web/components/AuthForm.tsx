@@ -51,6 +51,7 @@ export function AuthForm() {
             <button
               type="button"
               onClick={() => setMode("signin")}
+              disabled={mode === "signin"}
               className={[styles.tab, mode === "signin" ? styles.tabActive : ""]
                 .filter(Boolean)
                 .join(" ")}
@@ -60,6 +61,7 @@ export function AuthForm() {
             <button
               type="button"
               onClick={() => setMode("signup")}
+              disabled={mode === "signup"}
               className={[styles.tab, mode === "signup" ? styles.tabActive : ""]
                 .filter(Boolean)
                 .join(" ")}

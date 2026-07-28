@@ -102,6 +102,10 @@
   color: var(--kd-text-muted);
 }
 
+.tab:disabled {
+  cursor: default;
+}
+
 .tabActive {
   background: var(--kd-accent-pink);
   color: var(--kd-bg);
