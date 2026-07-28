@@ -46,7 +46,7 @@ export function JoinForm() {
 
   return (
     <div>
-      <h1>Kuhhandel Online</h1>
+      <h1>Kuchendal</h1>
       <p>Connecté en tant que {profile.username}</p>
 
       <section>

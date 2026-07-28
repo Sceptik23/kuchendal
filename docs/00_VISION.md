@@ -1,7 +1,7 @@
 # 00 — VISION
 
 ## Nom de code du projet
-**Kuhhandel Online** (nom de travail — à renommer avant publication pour éviter tout conflit avec la marque déposée du jeu physique).
+**Kuchendal** (renommé depuis "Kuhhandel Online" pour éviter tout conflit avec la marque déposée du jeu physique).
 
 ## Pitch en une phrase
 Un jeu d'enchères, de bluff et de négociation multijoueur en temps réel, fidèle aux règles du Kuhhandel original, habillé d'une couche de méta-progression complète (comptes, amis, XP, badges, titres, événements rares, Hall of Shame/Fame) pour donner envie de rejouer indéfiniment.

@@ -29,7 +29,7 @@ export function AuthForm() {
         }
       }}
     >
-      <h1>Kuhhandel Online</h1>
+      <h1>Kuchendal</h1>
       <div>
         <button type="button" onClick={() => setMode("signin")} disabled={mode === "signin"}>
           Connexion

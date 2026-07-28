@@ -4,7 +4,7 @@ Copie-colle le bloc ci-dessous tel quel dans Claude Code, une fois les fichiers 
 
 ---
 
-Tu vas m'aider à développer **Kuhhandel Online**, un jeu multijoueur d'enchères et de bluff en temps réel avec une couche complète de méta-progression (comptes, amis, XP, badges, titres, événements rares, Hall of Shame/Fame).
+Tu vas m'aider à développer **Kuchendal**, un jeu multijoueur d'enchères et de bluff en temps réel avec une couche complète de méta-progression (comptes, amis, XP, badges, titres, événements rares, Hall of Shame/Fame).
 
 Toute la spécification du projet se trouve dans le dossier `/docs` à la racine de ce repo, composé de 10 documents :
 

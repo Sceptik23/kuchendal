@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: 'Kuhhandel Online',
+  title: 'Kuchendal',
   description: "Jeu multijoueur d'enchères et de bluff en temps réel",
 };
 
