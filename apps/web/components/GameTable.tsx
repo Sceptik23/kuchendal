@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
+import { playSound } from "../lib/sound";
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
-import type { DistinctionEntry, GameStateView } from "@kuhhandel/shared-types";
+import type { DistinctionEntry, GameStateView, RareEventEntry } from "@kuhhandel/shared-types";
 
 function familyCounts(animals: { species: string }[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -20,6 +22,39 @@ const DISTINCTION_LABELS: Record<DistinctionEntry["key"], { title: string; descr
   banquier_dimanche: { title: "Banquier du dimanche", description: "Le plus gros retournement de situation." },
   meilleur_acteur: { title: "Meilleur acteur", description: "Le bluffeur le plus efficace de la partie." },
 };
+
+const RARE_EVENT_BANNER_DURATION_MS = 4000;
+
+/**
+ * Shows the most recent rare event as a brief banner (06_AUDIO_VFX.md §3:
+ * "effet spotlight bref") and best-effort plays its sound — purely
+ * cosmetic, never blocks or represents any game-affecting state.
+ */
+function RareEventBanner({ state }: { state: GameStateView }) {
+  const [current, setCurrent] = useState<RareEventEntry | null>(null);
+  const seenCount = useRef(0);
+
+  useEffect(() => {
+    const feed = state.rareEventsFeed;
+    if (feed.length <= seenCount.current) {
+      seenCount.current = feed.length;
+      return;
+    }
+    const latest = feed[feed.length - 1]!;
+    seenCount.current = feed.length;
+    setCurrent(latest);
+    playSound(latest.sound);
+    const timer = setTimeout(() => setCurrent(null), RARE_EVENT_BANNER_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [state.rareEventsFeed]);
+
+  if (!current) return null;
+  return (
+    <div data-vfx={current.vfx} style={{ animation: "pulse 1.2s ease-in-out" }}>
+      ✨ {current.name} — {current.flavorText}
+    </div>
+  );
+}
 
 function NarratorFeed({ state }: { state: GameStateView }) {
   if (state.narratorFeed.length === 0) return null;
@@ -121,6 +156,7 @@ export function GameTable() {
       <AuctionPanel />
       <KuhhandelPanel />
       <NarratorFeed state={state} />
+      <RareEventBanner state={state} />
     </div>
   );
 }

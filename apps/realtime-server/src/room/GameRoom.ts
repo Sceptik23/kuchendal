@@ -61,8 +61,10 @@ import {
   type NarratorStyle,
 } from '@kuhhandel/narrator-engine';
 import { computeDistinctions, type DistinctionEntry } from '@kuhhandel/distinctions-engine';
+import { rollRareEvent, type RareEventEntry } from '@kuhhandel/rare-events-engine';
 
 const NARRATOR_FEED_LIMIT = 20;
+const RARE_EVENTS_FEED_LIMIT = 20;
 
 let playerIdCounter = 0;
 
@@ -96,6 +98,7 @@ export class GameRoom {
   private narratorFeed: NarratorMessage[] = [];
   private lastNarratorLeaderId: string | null = null;
   private finalDistinctions: DistinctionEntry[] = [];
+  private rareEventsFeed: RareEventEntry[] = [];
 
   constructor(
     private readonly rng: RandomSource = Math.random,
@@ -360,6 +363,15 @@ export class GameRoom {
       this.emitNarratorEvent('comeback', { player: this.findPlayer(newLeaderId).name });
     }
     this.lastNarratorLeaderId = newLeaderId;
+
+    // Purely cosmetic (06_AUDIO_VFX.md §4 / 07_META_GAME.md §6): never
+    // touches this.players or scoring, only the display feed below.
+    const rareEvent = rollRareEvent(this.rng);
+    if (rareEvent) {
+      this.rareEventsFeed.push(rareEvent);
+      if (this.rareEventsFeed.length > RARE_EVENTS_FEED_LIMIT) this.rareEventsFeed.shift();
+    }
+
     this.activePlayerIndex = nextPlayerIndex(this.activePlayerIndex, this.players.length);
     this.turnNumber += 1;
     this.withGameId((gameId) =>
@@ -560,6 +572,7 @@ export class GameRoom {
       kuhhandel: this.kuhhandel ? getKuhhandelPublicView(this.kuhhandel, viewerId) : null,
       narratorFeed: this.narratorFeed,
       distinctions: this.status === 'finished' ? this.finalDistinctions : [],
+      rareEventsFeed: this.rareEventsFeed,
     };
   }
 

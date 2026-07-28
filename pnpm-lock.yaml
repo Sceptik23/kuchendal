@@ -41,6 +41,9 @@ importers:
       '@kuhhandel/narrator-engine':
         specifier: workspace:*
         version: link:../../packages/narrator-engine
+      '@kuhhandel/rare-events-engine':
+        specifier: workspace:*
+        version: link:../../packages/rare-events-engine
       '@kuhhandel/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -166,6 +169,19 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
 
+  packages/rare-events-engine:
+    dependencies:
+      '@kuhhandel/game-engine':
+        specifier: workspace:*
+        version: link:../game-engine
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
+
   packages/shared-types:
     dependencies:
       '@kuhhandel/distinctions-engine':
@@ -177,6 +193,9 @@ importers:
       '@kuhhandel/narrator-engine':
         specifier: workspace:*
         version: link:../narrator-engine
+      '@kuhhandel/rare-events-engine':
+        specifier: workspace:*
+        version: link:../rare-events-engine
     devDependencies:
       typescript:
         specifier: ^5.7.2

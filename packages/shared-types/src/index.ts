@@ -6,8 +6,9 @@ import type {
 } from "@kuhhandel/game-engine";
 import type { NarratorMessage, NarratorStyle } from "@kuhhandel/narrator-engine";
 import type { DistinctionEntry } from "@kuhhandel/distinctions-engine";
+import type { RareEventEntry } from "@kuhhandel/rare-events-engine";
 
-export type { NarratorMessage, NarratorStyle, DistinctionEntry };
+export type { NarratorMessage, NarratorStyle, DistinctionEntry, RareEventEntry };
 
 export type RoomStatus = "lobby" | "in_progress" | "finished";
 export type LobbyType = "public" | "private" | "password";
@@ -40,6 +41,8 @@ export interface GameStateView {
   narratorFeed: NarratorMessage[];
   /** Hall of Shame/Fame distinctions (08_AI.md §3) — only populated once the game has finished. */
   distinctions: DistinctionEntry[];
+  /** Recent rare events (07_META_GAME.md §6) — cosmetic only, never affects scoring. */
+  rareEventsFeed: RareEventEntry[];
 }
 
 export interface PublicRoomListing {
