@@ -1,0 +1,39 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--kd-border);
+}
+
+.logo {
+  font-family: var(--kd-font-display);
+  font-size: 22px;
+  background: linear-gradient(90deg, var(--kd-accent-green), var(--kd-accent-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.links {
+  display: flex;
+  gap: 6px;
+}
+
+.link {
+  font-family: var(--kd-font-body);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--kd-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--kd-radius-sm);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.active {
+  color: var(--kd-text);
+  background: var(--kd-surface);
+}
