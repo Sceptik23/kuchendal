@@ -28,6 +28,13 @@
   --kd-rarity-mythique: var(--kd-accent-yellow);
   --kd-rarity-secret: var(--kd-accent-green);
 
+  /* Glow (replaces drop shadows on flat surfaces, per shape language) */
+  --kd-glow-strength: 55%;
+  --kd-glow-strength-strong: 60%;
+  --kd-glow-radius-sm: 8px;
+  --kd-glow-radius-md: 16px;
+  --kd-glow-radius-lg: 18px;
+
   /* Shape */
   --kd-radius-sm: 12px;
   --kd-radius-md: 16px;

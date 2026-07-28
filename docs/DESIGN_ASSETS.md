@@ -7,8 +7,9 @@
 > tant que les assets/décisions ne sont pas fournis.
 
 ## 0. Direction artistique générale (à valider en premier)
-- [x] Palette de couleurs définitive (base : terreuse et vive — vert
-      prairie, orange grange, jaune paille — cf. `05_UI_UX.md` §1)
+- [x] Palette de couleurs définitive (fond quasi-noir + accents fluo —
+      voir `packages/ui/src/tokens.css` ; remplace la palette terreuse
+      initialement prévue dans `05_UI_UX.md` §1)
 - [x] Typographie (titres + texte courant)
 - [x] Ton visuel de référence (3-5 exemples/inspirations : cartoon sans être
       enfantin, un peu d'humour/clin d'œil)
@@ -101,8 +102,10 @@ distinct (couleur/police/cadre) :
 - [ ] Maître du Bluff
 - [ ] YOLO
 - [ ] Légende du Village (badge secret)
-- [ ] Un style de cadre par rareté (commun/rare/épique/légendaire/
-      mythique/secret/ultra-secret) — 7 variantes visuelles
+- [x] Un style de cadre par rareté (commun/rare/épique/légendaire/
+      mythique/secret/ultra-secret) — 7 variantes visuelles (implémenté
+      dans `packages/ui/src/RarityFrame/` — reste à appliquer aux icônes
+      de badges elles-mêmes une fois celles-ci fournies)
 
 ## 8. Succès cachés (4 définis — icône ou juste texte stylé au choix)
 - [ ] Grand retournement manqué

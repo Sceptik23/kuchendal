@@ -13,7 +13,7 @@
 }
 
 .glow.solid {
-  box-shadow: 0 0 16px color-mix(in oklch, var(--rf-color) 55%, transparent);
+  box-shadow: 0 0 var(--kd-glow-radius-md) color-mix(in oklch, var(--rf-color) var(--kd-glow-strength), transparent);
 }
 
 .holo {
@@ -34,7 +34,7 @@
 }
 
 .glow.holo {
-  box-shadow: 0 0 18px color-mix(in oklch, var(--kd-accent-pink) 60%, transparent);
+  box-shadow: 0 0 var(--kd-glow-radius-lg) color-mix(in oklch, var(--kd-accent-pink) var(--kd-glow-strength-strong), transparent);
 }
 
 .circle {

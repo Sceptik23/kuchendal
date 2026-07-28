@@ -9,7 +9,7 @@
 
 .known {
   background: var(--kd-accent-green);
-  box-shadow: 0 0 8px color-mix(in oklch, var(--kd-accent-green) 55%, transparent);
+  box-shadow: 0 0 var(--kd-glow-radius-sm) color-mix(in oklch, var(--kd-accent-green) var(--kd-glow-strength), transparent);
 }
 
 .partial {

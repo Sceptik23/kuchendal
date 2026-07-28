@@ -7,7 +7,7 @@
   width: 100%;
   border-radius: var(--kd-radius-md);
   border: 3px solid var(--pc-accent);
-  box-shadow: 0 0 16px color-mix(in oklch, var(--pc-accent) 55%, transparent);
+  box-shadow: 0 0 var(--kd-glow-radius-md) color-mix(in oklch, var(--pc-accent) var(--kd-glow-strength), transparent);
   background: var(--kd-surface);
   overflow: hidden;
   box-sizing: border-box;
