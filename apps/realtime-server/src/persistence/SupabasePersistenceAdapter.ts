@@ -135,4 +135,20 @@ export class SupabasePersistenceAdapter implements GamePersistenceAdapter {
     );
     await this.unlockByKeys("titles", "user_titles", "title_id", userId, newlyUnlockedTitleKeys);
   }
+
+  async saveHallOfFameShameEntries(
+    gameId: string,
+    entries: { userId: string | null; distinctionKey: string; metricValue: number }[],
+  ): Promise<void> {
+    if (entries.length === 0) return;
+    const { error } = await this.client.from("hall_of_fame_shame_entries").insert(
+      entries.map((entry) => ({
+        game_id: gameId,
+        user_id: entry.userId,
+        distinction_key: entry.distinctionKey,
+        computed_metric: { value: entry.metricValue },
+      })),
+    );
+    if (error) throw error;
+  }
 }

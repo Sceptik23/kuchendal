@@ -35,6 +35,16 @@ export interface GamePersistenceAdapter {
     newlyUnlockedAchievementKeys: string[],
     newlyUnlockedTitleKeys: string[],
   ): Promise<void>;
+
+  /**
+   * Phase 7 (08_AI.md §3): end-of-game Hall of Shame/Fame distinctions.
+   * Guests/bots (userId null) are still persisted against the game for
+   * display, but never contribute to any per-user history.
+   */
+  saveHallOfFameShameEntries(
+    gameId: string,
+    entries: { userId: string | null; distinctionKey: string; metricValue: number }[],
+  ): Promise<void>;
 }
 
 export class NullPersistenceAdapter implements GamePersistenceAdapter {
@@ -49,4 +59,5 @@ export class NullPersistenceAdapter implements GamePersistenceAdapter {
     return null;
   }
   async saveCareerProgress(): Promise<void> {}
+  async saveHallOfFameShameEntries(): Promise<void> {}
 }

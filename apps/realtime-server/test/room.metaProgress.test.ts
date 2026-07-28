@@ -13,6 +13,7 @@ function fakeAdapter(): GamePersistenceAdapter & {
     saveSnapshot: vi.fn().mockResolvedValue(undefined),
     loadCareerStats: vi.fn().mockResolvedValue(null),
     saveCareerProgress: vi.fn().mockResolvedValue(undefined),
+    saveHallOfFameShameEntries: vi.fn().mockResolvedValue(undefined),
   };
 }
 

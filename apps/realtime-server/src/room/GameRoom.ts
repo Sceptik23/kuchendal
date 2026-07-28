@@ -41,6 +41,28 @@ import {
   GAME_END_CONDITION,
   REMAINING_MONEY_COUNTS_IN_SCORE,
 } from '@kuhhandel/game-engine';
+import {
+  BOT_DIFFICULTY_PRESETS,
+  decideAuctionBid,
+  decideKuhhandelInitiation,
+  decideKuhhandelOffer,
+  decideKuhhandelResponse,
+  decideSellerDecision,
+  type BotDifficulty,
+} from '@kuhhandel/bot-engine';
+import {
+  TemplateNarratorProvider,
+  isBigBid,
+  isBluffRevealed,
+  isBoldKuhhandelOffer,
+  isComeback,
+  type NarratorMessage,
+  type NarratorProvider,
+  type NarratorStyle,
+} from '@kuhhandel/narrator-engine';
+import { computeDistinctions, type DistinctionEntry } from '@kuhhandel/distinctions-engine';
+
+const NARRATOR_FEED_LIMIT = 20;
 
 let playerIdCounter = 0;
 
@@ -64,18 +86,38 @@ export class GameRoom {
   private kuhhandel: KuhhandelState | null = null;
   private userIdByPlayerId = new Map<string, string | null>();
   private botPlayerIds = new Set<string>();
+  private botDifficultyByPlayerId = new Map<string, BotDifficulty>();
   private hostPlayerId: string | null = null;
   private gameIdPromise: Promise<string> | null = null;
   private botCounter = 0;
   private turnNumber = 0;
   private statsTracker = new GameStatsTracker();
   private currentAuctionBidderIds: string[] = [];
+  private narratorFeed: NarratorMessage[] = [];
+  private lastNarratorLeaderId: string | null = null;
+  private finalDistinctions: DistinctionEntry[] = [];
 
   constructor(
     private readonly rng: RandomSource = Math.random,
     private readonly startingMoneyFactory: () => MoneyCard[] = createStartingMoney,
     private readonly persistence: GamePersistenceAdapter = new NullPersistenceAdapter(),
+    private readonly narratorStyle: NarratorStyle = 'sport',
+    private readonly narratorProvider: NarratorProvider = new TemplateNarratorProvider(rng),
   ) {}
+
+  private botConfig(playerId: string) {
+    return BOT_DIFFICULTY_PRESETS[this.botDifficultyByPlayerId.get(playerId) ?? 'normal'];
+  }
+
+  private emitNarratorEvent(
+    eventKey: Parameters<NarratorProvider['comment']>[1],
+    placeholders: Parameters<NarratorProvider['comment']>[2],
+  ): void {
+    const message = this.narratorProvider.comment(this.narratorStyle, eventKey, placeholders);
+    if (!message) return;
+    this.narratorFeed.push(message);
+    if (this.narratorFeed.length > NARRATOR_FEED_LIMIT) this.narratorFeed.shift();
+  }
 
   /** Fire-and-forget: persistence never blocks or throws back into gameplay. */
   private withGameId(fn: (gameId: string) => Promise<void>): void {
@@ -110,17 +152,18 @@ export class GameRoom {
 
   /**
    * Adds a bot player slot (02_PRD_PRODUCT.md §3: host can add bots to
-   * complete the table). Behaviour is a minimal deterministic stub for now
-   * (see runBotLoop below) — the real heuristic decision logic from
-   * 08_AI.md arrives in Phase 7 and will replace this same code path.
+   * complete the table), with a difficulty preset (08_AI.md §2) driving
+   * its heuristic decisions in runBotLoop below.
    */
-  addBot(requesterId: string): string {
+  addBot(requesterId: string, difficulty: BotDifficulty = 'normal'): string {
     this.requireHost(requesterId);
     if (this.status !== 'lobby') {
       throw new Error('Cannot add a bot once the game has started.');
     }
     this.botCounter += 1;
-    return this.join(`Bot ${this.botCounter}`, null, true);
+    const id = this.join(`Bot ${this.botCounter}`, null, true);
+    this.botDifficultyByPlayerId.set(id, difficulty);
+    return id;
   }
 
   kickPlayer(requesterId: string, targetId: string): void {
@@ -136,6 +179,7 @@ export class GameRoom {
     this.players = this.players.filter((p) => p.id !== targetId);
     this.userIdByPlayerId.delete(targetId);
     this.botPlayerIds.delete(targetId);
+    this.botDifficultyByPlayerId.delete(targetId);
   }
 
   transferHost(requesterId: string, targetId: string): void {
@@ -177,19 +221,33 @@ export class GameRoom {
   }
 
   /**
-   * Minimal deterministic stand-in so a lobby with bot slots is actually
-   * playable now, without waiting for the heuristic bots of 08_AI.md
-   * (Phase 7): a bot always reveals a card on its own turn, always passes
-   * as a bidder, always sells as a seller, and always accepts a Kuhhandel
-   * offered to it. This function is the single place that logic lives —
-   * Phase 7 replaces its body, not the call sites.
+   * Drives every bot player using the heuristics of 08_AI.md §2 (packages/
+   * bot-engine): estimates species value from what's left to complete a
+   * family, bids/offers a bounded, slightly randomized share of its cash,
+   * and only initiates a Kuhhandel when it holds a duplicate and looks
+   * cash-advantaged over the target. Called after every state-changing
+   * action so a chain of bot turns plays itself out without any external
+   * trigger.
    */
   private runBotLoop(): void {
     if (this.status !== 'in_progress') return;
 
     if (this.kuhhandel) {
-      if (this.kuhhandel.stage === 'awaiting_response' && this.botPlayerIds.has(this.kuhhandel.targetId)) {
-        this.respondAccept(this.kuhhandel.targetId);
+      const state = this.kuhhandel;
+      if (state.stage === 'awaiting_initiator_offer' && this.botPlayerIds.has(state.initiatorId)) {
+        const initiator = this.findPlayer(state.initiatorId);
+        const offer = decideKuhhandelOffer(initiator, this.botConfig(initiator.id), this.rng);
+        this.submitOffer(initiator.id, offer.map((c) => c.id));
+        return;
+      }
+      if (state.stage === 'awaiting_response' && this.botPlayerIds.has(state.targetId)) {
+        const target = this.findPlayer(state.targetId);
+        const response = decideKuhhandelResponse(target, state, this.botConfig(target.id), this.rng);
+        if (response.type === 'accept') {
+          this.respondAccept(target.id);
+        } else {
+          this.respondCounter(target.id, response.cards.map((c) => c.id));
+        }
       }
       return;
     }
@@ -198,17 +256,34 @@ export class GameRoom {
       const state = this.auction;
       if (state.status === 'bidding') {
         const botBidder = state.activeBidders.find((id) => this.botPlayerIds.has(id));
-        if (botBidder) this.pass(botBidder);
+        if (botBidder) {
+          const bot = this.findPlayer(botBidder);
+          const bid = decideAuctionBid(bot, state, this.botConfig(botBidder), this.rng);
+          if (bid === null) {
+            this.pass(botBidder);
+          } else {
+            this.placeBid(botBidder, bid);
+          }
+        }
         return;
       }
       if (state.status === 'awaiting_seller_decision' && this.botPlayerIds.has(state.sellerId)) {
-        this.sellerDecision(state.sellerId, 'sell');
+        const seller = this.findPlayer(state.sellerId);
+        const decision = decideSellerDecision(seller, state, this.botConfig(state.sellerId));
+        this.sellerDecision(state.sellerId, decision);
       }
       return;
     }
 
     if (this.botPlayerIds.has(this.activePlayer.id)) {
-      this.startAuction(this.activePlayer.id);
+      const bot = this.activePlayer;
+      const others = this.players.filter((p) => p.id !== bot.id);
+      const kuhhandel = decideKuhhandelInitiation(bot, others, this.botConfig(bot.id));
+      if (kuhhandel) {
+        this.startKuhhandel(bot.id, kuhhandel.targetId, kuhhandel.species);
+      } else {
+        this.startAuction(bot.id);
+      }
     }
   }
 
@@ -261,9 +336,30 @@ export class GameRoom {
           console.error('[meta]', error),
         );
       }
+
+      const facts = this.statsTracker.buildHallOfFameFacts(this.players);
+      this.finalDistinctions = computeDistinctions(facts);
+      this.withGameId((gameId) =>
+        this.persistence.saveHallOfFameShameEntries(
+          gameId,
+          this.finalDistinctions.map((entry) => ({
+            userId: this.userIdByPlayerId.get(entry.playerId) ?? null,
+            distinctionKey: entry.key,
+            metricValue: entry.metricValue,
+          })),
+        ),
+      );
       return;
     }
-    this.statsTracker.recordLeaderCheckpoint(this.players);
+    this.statsTracker.recordLeaderCheckpoint(this.players, this.deck.length);
+    const scored = this.players
+      .map((p) => ({ id: p.id, score: computeScore(p) }))
+      .sort((a, b) => b.score - a.score);
+    const newLeaderId = scored[0]!.id;
+    if (isComeback(this.lastNarratorLeaderId, newLeaderId)) {
+      this.emitNarratorEvent('comeback', { player: this.findPlayer(newLeaderId).name });
+    }
+    this.lastNarratorLeaderId = newLeaderId;
     this.activePlayerIndex = nextPlayerIndex(this.activePlayerIndex, this.players.length);
     this.turnNumber += 1;
     this.withGameId((gameId) =>
@@ -299,8 +395,17 @@ export class GameRoom {
 
   placeBid(playerId: string, amount: number): void {
     this.requireActionable();
-    this.auction = engPlaceBid(this.requireAuction(), playerId, amount);
+    const state = this.requireAuction();
+    this.auction = engPlaceBid(state, playerId, amount);
     this.statsTracker.onBid(playerId);
+    if (isBigBid(amount)) {
+      this.emitNarratorEvent('bigBid', {
+        player: this.findPlayer(playerId).name,
+        amount,
+        species: state.card.species,
+      });
+    }
+    this.runBotLoop();
   }
 
   pass(playerId: string): void {
@@ -365,6 +470,12 @@ export class GameRoom {
     const offerTotal = cards.reduce((sum, c) => sum + c.value, 0);
     const moneyBeforeOffer = this.findPlayer(playerId).money.reduce((sum, c) => sum + c.value, 0);
     this.statsTracker.onKuhhandelOfferSubmitted(playerId, offerTotal, moneyBeforeOffer);
+    if (isBoldKuhhandelOffer(offerTotal, moneyBeforeOffer)) {
+      this.emitNarratorEvent('boldKuhhandel', {
+        player: this.findPlayer(playerId).name,
+        opponent: this.findPlayer(state.targetId).name,
+      });
+    }
     this.kuhhandel = submitInitiatorOffer(state, cards, state.tieRound);
     this.runBotLoop();
   }
@@ -376,8 +487,9 @@ export class GameRoom {
       throw new Error('Only the target of the Kuhhandel can respond.');
     }
     const result = engRespondAccept(state);
+    const offerTotal = result.money.reduce((sum, c) => sum + c.value, 0);
     this.players = applyKuhhandelResult(this.players, result);
-    this.statsTracker.onKuhhandelAccepted(state.initiatorId, state.targetId);
+    this.statsTracker.onKuhhandelAccepted(state.initiatorId, state.targetId, state.species, offerTotal);
     this.withGameId((gameId) => this.persistence.logEvent(gameId, 'KUHHANDEL_RESOLVED', result));
     this.endTurn();
     this.runBotLoop();
@@ -395,6 +507,7 @@ export class GameRoom {
 
     if (result.type === 'tie_reoffer_needed') {
       this.kuhhandel = { ...state, stage: 'awaiting_initiator_offer', tieRound: result.tieRound };
+      this.runBotLoop();
       return;
     }
     if (result.type === 'accept') {
@@ -410,6 +523,15 @@ export class GameRoom {
       initiatorOfferTotal,
       targetOfferTotal,
     );
+
+    const winnerStake = result.winnerId === state.initiatorId ? initiatorOfferTotal : targetOfferTotal;
+    const loserStake = result.winnerId === state.initiatorId ? targetOfferTotal : initiatorOfferTotal;
+    if (isBluffRevealed(winnerStake, loserStake)) {
+      this.emitNarratorEvent('bluffRevealed', {
+        player: this.findPlayer(result.winnerId).name,
+        opponent: this.findPlayer(result.loserId).name,
+      });
+    }
 
     this.players = applyKuhhandelResult(this.players, result);
     this.withGameId((gameId) => this.persistence.logEvent(gameId, 'KUHHANDEL_RESOLVED', result));
@@ -436,6 +558,8 @@ export class GameRoom {
       deckCount: this.deck.length,
       auction: this.auction,
       kuhhandel: this.kuhhandel ? getKuhhandelPublicView(this.kuhhandel, viewerId) : null,
+      narratorFeed: this.narratorFeed,
+      distinctions: this.status === 'finished' ? this.finalDistinctions : [],
     };
   }
 

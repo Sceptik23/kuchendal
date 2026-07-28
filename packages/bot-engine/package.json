@@ -1,5 +1,5 @@
 {
-  "name": "@kuhhandel/shared-types",
+  "name": "@kuhhandel/bot-engine",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,16 +7,15 @@
   "types": "src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "echo \"no tests yet\" && exit 0",
+    "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@kuhhandel/distinctions-engine": "workspace:*",
-    "@kuhhandel/game-engine": "workspace:*",
-    "@kuhhandel/narrator-engine": "workspace:*"
+    "@kuhhandel/game-engine": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }

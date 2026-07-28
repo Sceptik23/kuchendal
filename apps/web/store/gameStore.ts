@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { GameStateView, LobbyType, PublicRoomListing } from "@kuhhandel/shared-types";
+import type {
+  GameStateView,
+  LobbyType,
+  NarratorStyle,
+  PublicRoomListing,
+} from "@kuhhandel/shared-types";
 import { getSocket } from "../lib/socket";
 
 interface GameStore {
@@ -14,6 +19,7 @@ interface GameStore {
     name: string,
     accessToken?: string,
     password?: string,
+    narratorStyle?: NarratorStyle,
   ) => Promise<string>;
   join: (code: string, name: string, accessToken?: string, password?: string) => Promise<void>;
   listPublicRooms: () => Promise<PublicRoomListing[]>;
@@ -60,11 +66,15 @@ export const useGameStore = create<GameStore>((set) => {
     error: null,
     connected: socket.connected,
 
-    createAndJoin: async (type, name, accessToken, password) => {
+    createAndJoin: async (type, name, accessToken, password, narratorStyle) => {
       const code = await new Promise<string>((resolve) => {
         socket.emit(
           "lobby:create",
-          password ? { type, password } : { type },
+          {
+            type,
+            ...(password ? { password } : {}),
+            ...(narratorStyle ? { narratorStyle } : {}),
+          },
           resolve,
         );
       });

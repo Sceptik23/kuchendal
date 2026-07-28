@@ -4,6 +4,10 @@ import type {
   KuhhandelPublicView,
   MoneyCard,
 } from "@kuhhandel/game-engine";
+import type { NarratorMessage, NarratorStyle } from "@kuhhandel/narrator-engine";
+import type { DistinctionEntry } from "@kuhhandel/distinctions-engine";
+
+export type { NarratorMessage, NarratorStyle, DistinctionEntry };
 
 export type RoomStatus = "lobby" | "in_progress" | "finished";
 export type LobbyType = "public" | "private" | "password";
@@ -32,6 +36,10 @@ export interface GameStateView {
   deckCount: number;
   auction: AuctionState | null;
   kuhhandel: KuhhandelPublicView | null;
+  /** Recent narrator comments (08_AI.md §1), most recent last. */
+  narratorFeed: NarratorMessage[];
+  /** Hall of Shame/Fame distinctions (08_AI.md §3) — only populated once the game has finished. */
+  distinctions: DistinctionEntry[];
 }
 
 export interface PublicRoomListing {
@@ -40,9 +48,11 @@ export interface PublicRoomListing {
   status: string;
 }
 
+export type BotDifficulty = "easy" | "normal";
+
 export interface ClientToServerEvents {
   "lobby:create": (
-    payload: { type: LobbyType; password?: string },
+    payload: { type: LobbyType; password?: string; narratorStyle?: NarratorStyle },
     ack: (code: string) => void,
   ) => void;
   "lobby:list": (ack: (rooms: PublicRoomListing[]) => void) => void;
@@ -53,7 +63,7 @@ export interface ClientToServerEvents {
   "lobby:start": () => void;
   "host:kick": (payload: { playerId: string }) => void;
   "host:transfer": (payload: { playerId: string }) => void;
-  "host:addBot": () => void;
+  "host:addBot": (payload?: { difficulty?: BotDifficulty }) => void;
   "turn:startAuction": () => void;
   "turn:startKuhhandel": (payload: { targetId: string; species: string }) => void;
   "auction:bid": (payload: { amount: number }) => void;

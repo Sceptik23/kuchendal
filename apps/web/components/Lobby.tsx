@@ -54,7 +54,14 @@ export function Lobby() {
       </ul>
 
       {isHost && (
-        <button onClick={() => getSocket().emit("host:addBot")}>Ajouter un bot</button>
+        <div>
+          <button onClick={() => getSocket().emit("host:addBot", { difficulty: "easy" })}>
+            Ajouter un bot (facile)
+          </button>
+          <button onClick={() => getSocket().emit("host:addBot", { difficulty: "normal" })}>
+            Ajouter un bot (normal)
+          </button>
+        </div>
       )}
 
       <button disabled={!canStart} onClick={() => getSocket().emit("lobby:start")}>

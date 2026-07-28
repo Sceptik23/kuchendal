@@ -1,5 +1,6 @@
 import {
   SPECIES_FAMILY_VALUE,
+  SPECIES_KEYS,
   CARDS_PER_SPECIES,
   computeScore,
   type AnimalCard,
@@ -9,6 +10,9 @@ import {
   type SpeciesKey,
 } from "@kuhhandel/game-engine";
 import type { GameSummary } from "@kuhhandel/meta-engine";
+import type { PlayerDistinctionFacts } from "@kuhhandel/distinctions-engine";
+
+const TOTAL_DECK_SIZE = SPECIES_KEYS.length * CARDS_PER_SPECIES;
 
 interface PerPlayerStats {
   currentAuctionBidCount: number;
@@ -23,6 +27,10 @@ interface PerPlayerStats {
   currentKuhhandelRefusalStreak: number;
   maxConsecutiveKuhhandelRefusals: number;
   completedFamilyOnFinalTurn: boolean;
+  /** Hall of Fame/Shame facts (08_AI.md §3), gathered alongside the meta-progression stats above. */
+  kuhhandelWinStakes: number[];
+  maxBluffGap: number;
+  maxArnaqueRatio: number;
 }
 
 function emptyStats(): PerPlayerStats {
@@ -39,6 +47,9 @@ function emptyStats(): PerPlayerStats {
     currentKuhhandelRefusalStreak: 0,
     maxConsecutiveKuhhandelRefusals: 0,
     completedFamilyOnFinalTurn: false,
+    kuhhandelWinStakes: [],
+    maxBluffGap: 0,
+    maxArnaqueRatio: 0,
   };
 }
 
@@ -59,6 +70,8 @@ function hasCompleteFamily(animals: AnimalCard[], species: SpeciesKey): boolean 
 export class GameStatsTracker {
   private stats = new Map<string, PerPlayerStats>();
   private lastLeaderCheckpoint: { leaderId: string; margin: number } | null = null;
+  /** One-time snapshot of each player's rank near the game's midpoint, for the "comeback" distinction. */
+  private midGameRanks: Map<string, number> | null = null;
 
   private get(playerId: string): PerPlayerStats {
     let s = this.stats.get(playerId);
@@ -116,9 +129,18 @@ export class GameStatsTracker {
     );
   }
 
-  onKuhhandelAccepted(initiatorId: string, targetId: string): void {
+  onKuhhandelAccepted(
+    initiatorId: string,
+    targetId: string,
+    species: SpeciesKey,
+    offerTotal: number,
+  ): void {
     this.get(targetId).currentKuhhandelRefusalStreak = 0;
-    this.get(initiatorId).kuhhandelsWon += 1;
+    const winner = this.get(initiatorId);
+    winner.kuhhandelsWon += 1;
+    winner.kuhhandelWinStakes.push(offerTotal);
+    const arnaqueRatio = estimatedCardValue(species) / Math.max(offerTotal, 1);
+    winner.maxArnaqueRatio = Math.max(winner.maxArnaqueRatio, arnaqueRatio);
   }
 
   onKuhhandelCounterResolved(
@@ -139,11 +161,22 @@ export class GameStatsTracker {
     const loserStake = result.winnerId === initiatorId ? targetOfferTotal : initiatorOfferTotal;
     if (winnerStake < loserStake) {
       winner.successfulBluffs += 1;
+      winner.maxBluffGap = Math.max(winner.maxBluffGap, loserStake - winnerStake);
     }
+
+    winner.kuhhandelWinStakes.push(winnerStake);
+    const arnaqueRatio = estimatedCardValue(result.species) / Math.max(winnerStake, 1);
+    winner.maxArnaqueRatio = Math.max(winner.maxArnaqueRatio, arnaqueRatio);
   }
 
-  /** Call after every turn ends, to checkpoint who's leading for the "lost after leading" achievement. */
-  recordLeaderCheckpoint(players: Player[]): void {
+  /**
+   * Call after every turn ends, to checkpoint who's leading for the "lost
+   * after leading" achievement, and to snapshot each player's rank near
+   * the game's midpoint for the "comeback" Hall of Fame distinction
+   * (08_AI.md §3). `deckRemaining` lets the snapshot fire once, the first
+   * time the deck crosses its halfway point.
+   */
+  recordLeaderCheckpoint(players: Player[], deckRemaining: number): void {
     const scored = players
       .map((p) => ({ id: p.id, score: computeScore(p) }))
       .sort((a, b) => b.score - a.score);
@@ -151,6 +184,10 @@ export class GameStatsTracker {
     const runnerUp = scored[1];
     const margin = leader.score - (runnerUp?.score ?? 0);
     this.lastLeaderCheckpoint = { leaderId: leader.id, margin };
+
+    if (!this.midGameRanks && deckRemaining <= TOTAL_DECK_SIZE / 2) {
+      this.midGameRanks = new Map(scored.map((s, index) => [s.id, index + 1]));
+    }
   }
 
   onFinalCardResolved(buyerId: string, species: SpeciesKey, buyerAnimalsAfter: AnimalCard[]): void {
@@ -196,5 +233,35 @@ export class GameStatsTracker {
       });
     }
     return summaries;
+  }
+
+  /** Facts for @kuhhandel/distinctions-engine's computeDistinctions, gathered at game end. */
+  buildHallOfFameFacts(players: Player[]): PlayerDistinctionFacts[] {
+    const finalRankByPlayer = new Map(
+      players
+        .map((p) => ({ id: p.id, score: computeScore(p) }))
+        .sort((a, b) => b.score - a.score)
+        .map((s, index) => [s.id, index + 1]),
+    );
+
+    return players.map((player) => {
+      const s = this.get(player.id);
+      const midRank = this.midGameRanks?.get(player.id);
+      const finalRank = finalRankByPlayer.get(player.id)!;
+      const avgKuhhandelWinStake =
+        s.kuhhandelWinStakes.length > 0
+          ? s.kuhhandelWinStakes.reduce((a, b) => a + b, 0) / s.kuhhandelWinStakes.length
+          : 0;
+
+      return {
+        playerId: player.id,
+        maxBluffGap: s.maxBluffGap,
+        maxArnaqueRatio: s.maxArnaqueRatio,
+        maxOverpayRatio: s.maxOverpayRatio,
+        comebackDelta: midRank !== undefined ? midRank - finalRank : 0,
+        kuhhandelWinsCount: s.kuhhandelsWon,
+        avgKuhhandelWinStake,
+      };
+    });
   }
 }

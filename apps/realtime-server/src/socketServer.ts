@@ -64,11 +64,11 @@ export function createSocketServer(
   io.on("connection", (socket: AppSocket) => {
     socket.on("lobby:create", (payload, ack) => {
       try {
-        const { code } = roomManager.createRoom(
-          payload.password !== undefined
-            ? { type: payload.type, password: payload.password }
-            : { type: payload.type },
-        );
+        const { code } = roomManager.createRoom({
+          type: payload.type,
+          ...(payload.password !== undefined ? { password: payload.password } : {}),
+          ...(payload.narratorStyle !== undefined ? { narratorStyle: payload.narratorStyle } : {}),
+        });
         ack(code);
       } catch (error) {
         emitError(socket, error);
@@ -116,8 +116,8 @@ export function createSocketServer(
       runAction(socket, (room, info) => room.transferHost(info.playerId, playerId));
     });
 
-    socket.on("host:addBot", () => {
-      runAction(socket, (room, info) => room.addBot(info.playerId));
+    socket.on("host:addBot", (payload) => {
+      runAction(socket, (room, info) => room.addBot(info.playerId, payload?.difficulty));
     });
 
     socket.on("turn:startAuction", () => {

@@ -6,7 +6,14 @@ import { useAuthStore } from "../store/authStore";
 import { MatchHistory } from "./MatchHistory";
 import { Friends } from "./Friends";
 import { Profile } from "./Profile";
-import type { LobbyType, PublicRoomListing } from "@kuhhandel/shared-types";
+import type { LobbyType, NarratorStyle, PublicRoomListing } from "@kuhhandel/shared-types";
+
+const NARRATOR_STYLE_LABELS: Record<NarratorStyle, string> = {
+  sport: "Commentateur sportif",
+  documentary: "Documentaire animalier",
+  western: "Western",
+  tv: "Présentateur télé",
+};
 
 export function JoinForm() {
   const createAndJoin = useGameStore((s) => s.createAndJoin);
@@ -22,6 +29,7 @@ export function JoinForm() {
   const [showProfile, setShowProfile] = useState(false);
   const [lobbyType, setLobbyType] = useState<LobbyType>("public");
   const [createPassword, setCreatePassword] = useState("");
+  const [narratorStyle, setNarratorStyle] = useState<NarratorStyle>("sport");
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
   const [publicRooms, setPublicRooms] = useState<PublicRoomListing[] | null>(null);
@@ -53,9 +61,25 @@ export function JoinForm() {
             onChange={(e) => setCreatePassword(e.target.value)}
           />
         )}
+        <select
+          value={narratorStyle}
+          onChange={(e) => setNarratorStyle(e.target.value as NarratorStyle)}
+        >
+          {Object.entries(NARRATOR_STYLE_LABELS).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
         <button
           onClick={() =>
-            createAndJoin(lobbyType, profile.username, accessToken, createPassword || undefined)
+            createAndJoin(
+              lobbyType,
+              profile.username,
+              accessToken,
+              createPassword || undefined,
+              narratorStyle,
+            )
           }
         >
           Créer

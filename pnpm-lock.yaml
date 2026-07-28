@@ -26,12 +26,21 @@ importers:
 
   apps/realtime-server:
     dependencies:
+      '@kuhhandel/bot-engine':
+        specifier: workspace:*
+        version: link:../../packages/bot-engine
+      '@kuhhandel/distinctions-engine':
+        specifier: workspace:*
+        version: link:../../packages/distinctions-engine
       '@kuhhandel/game-engine':
         specifier: workspace:*
         version: link:../../packages/game-engine
       '@kuhhandel/meta-engine':
         specifier: workspace:*
         version: link:../../packages/meta-engine
+      '@kuhhandel/narrator-engine':
+        specifier: workspace:*
+        version: link:../../packages/narrator-engine
       '@kuhhandel/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -104,6 +113,28 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/bot-engine:
+    dependencies:
+      '@kuhhandel/game-engine':
+        specifier: workspace:*
+        version: link:../game-engine
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
+
+  packages/distinctions-engine:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
+
   packages/game-engine:
     devDependencies:
       typescript:
@@ -122,11 +153,30 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
 
-  packages/shared-types:
+  packages/narrator-engine:
     dependencies:
       '@kuhhandel/game-engine':
         specifier: workspace:*
         version: link:../game-engine
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
+
+  packages/shared-types:
+    dependencies:
+      '@kuhhandel/distinctions-engine':
+        specifier: workspace:*
+        version: link:../distinctions-engine
+      '@kuhhandel/game-engine':
+        specifier: workspace:*
+        version: link:../game-engine
+      '@kuhhandel/narrator-engine':
+        specifier: workspace:*
+        version: link:../narrator-engine
     devDependencies:
       typescript:
         specifier: ^5.7.2

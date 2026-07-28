@@ -12,8 +12,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@kuhhandel/bot-engine": "workspace:*",
+    "@kuhhandel/distinctions-engine": "workspace:*",
     "@kuhhandel/game-engine": "workspace:*",
     "@kuhhandel/meta-engine": "workspace:*",
+    "@kuhhandel/narrator-engine": "workspace:*",
     "@kuhhandel/shared-types": "workspace:*",
     "@supabase/supabase-js": "^2.110.8",
     "socket.io": "^4.8.3"

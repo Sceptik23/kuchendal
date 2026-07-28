@@ -1,12 +1,14 @@
 import { GameRoom } from "../room/GameRoom.js";
 import type { GamePersistenceAdapter } from "../persistence/types.js";
 import type { MoneyCard, RandomSource } from "@kuhhandel/game-engine";
+import type { NarratorStyle } from "@kuhhandel/narrator-engine";
 
 export type LobbyType = "public" | "private" | "password";
 
 export interface CreateRoomOptions {
   type: LobbyType;
   password?: string;
+  narratorStyle?: NarratorStyle;
 }
 
 interface RoomEntry {
@@ -54,6 +56,7 @@ export class RoomManager {
       this.rng,
       this.startingMoneyFactory,
       this.persistenceFactory?.(),
+      options.narratorStyle,
     );
 
     this.rooms.set(code, {
