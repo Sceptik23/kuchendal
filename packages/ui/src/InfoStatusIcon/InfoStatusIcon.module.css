@@ -1,0 +1,18 @@
+.icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+.known {
+  background: var(--kd-accent-green);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--kd-accent-green) 55%, transparent);
+}
+
+.partial {
+  background: transparent;
+  border: 2px solid var(--kd-accent-yellow);
+}

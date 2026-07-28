@@ -17,3 +17,6 @@ export type { ToastNarratorProps } from './ToastNarrator/ToastNarrator';
 
 export { Input } from './FormField/Input';
 export { Select } from './FormField/Select';
+
+export { InfoStatusIcon } from './InfoStatusIcon/InfoStatusIcon';
+export type { InfoStatus, InfoStatusIconProps } from './InfoStatusIcon/InfoStatusIcon';
