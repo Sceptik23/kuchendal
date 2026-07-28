@@ -11,3 +11,6 @@ export type { PlayerAvatarBadgeProps } from './PlayerAvatarBadge/PlayerAvatarBad
 
 export { PlayingCard } from './PlayingCard/PlayingCard';
 export type { PlayingCardProps, PlayingCardVariant } from './PlayingCard/PlayingCard';
+
+export { ToastNarrator } from './ToastNarrator/ToastNarrator';
+export type { ToastNarratorProps } from './ToastNarrator/ToastNarrator';
