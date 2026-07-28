@@ -1,0 +1,41 @@
+.wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.initial {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--kd-font-display);
+  font-size: 1.4em;
+  color: var(--kd-text-muted);
+}
+
+.status {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid var(--kd-bg);
+}
+
+.online {
+  background: var(--kd-accent-green);
+}
+
+.offline {
+  background: var(--kd-text-subtle);
+}

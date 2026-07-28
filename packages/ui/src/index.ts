@@ -5,3 +5,6 @@ export type { ButtonProps, ButtonVariant } from './Button/Button';
 
 export { RarityFrame, RARITIES } from './RarityFrame/RarityFrame';
 export type { RarityFrameProps, Rarity } from './RarityFrame/RarityFrame';
+
+export { PlayerAvatarBadge } from './PlayerAvatarBadge/PlayerAvatarBadge';
+export type { PlayerAvatarBadgeProps } from './PlayerAvatarBadge/PlayerAvatarBadge';
