@@ -1,0 +1,145 @@
+.page {
+  position: relative;
+  min-height: 100vh;
+  background: var(--kd-bg);
+  color: var(--kd-text);
+  font-family: var(--kd-font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.swirl {
+  position: absolute;
+  top: -40%;
+  left: -20%;
+  width: 140%;
+  height: 180%;
+  background: conic-gradient(
+    from 0deg,
+    var(--kd-accent-green),
+    var(--kd-accent-pink),
+    var(--kd-accent-cyan),
+    var(--kd-accent-yellow),
+    var(--kd-accent-orange),
+    var(--kd-accent-green)
+  );
+  filter: blur(100px);
+  opacity: 0.16;
+  animation: swirl-spin 55s linear infinite;
+  z-index: 0;
+}
+
+@keyframes swirl-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.wordmark {
+  font-family: var(--kd-font-display);
+  font-size: clamp(44px, 9vw, 68px);
+  line-height: 0.95;
+  margin: 0 0 8px;
+  background: linear-gradient(
+    90deg,
+    var(--kd-accent-green),
+    var(--kd-accent-pink),
+    var(--kd-accent-cyan)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--kd-text-muted);
+  margin: 0 0 32px;
+}
+
+.card {
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-lg);
+  padding: 28px;
+  text-align: left;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  background: var(--kd-bg);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.tab {
+  flex: 1;
+  font-family: var(--kd-font-display);
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--kd-text-muted);
+}
+
+.tabActive {
+  background: var(--kd-accent-pink);
+  color: var(--kd-bg);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--kd-text-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.field {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+}
+
+.submitWrap {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.submit {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.error {
+  color: var(--kd-accent-pink);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 0;
+}
+
+.pending {
+  font-family: var(--kd-font-body);
+  color: var(--kd-text);
+  text-align: center;
+}
