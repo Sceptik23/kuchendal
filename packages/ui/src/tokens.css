@@ -1,0 +1,66 @@
+/* Kuchendal design tokens — values copied verbatim from the design handoff
+   README (OKLCH, psychedelic/fluo direction on a near-black base). */
+:root {
+  /* Base surfaces */
+  --kd-bg: oklch(14% 0.02 300);
+  --kd-surface: oklch(20% 0.03 300);
+  --kd-surface-alt: oklch(18% 0.02 300);
+  --kd-border: oklch(28% 0.02 300);
+
+  /* Text */
+  --kd-text: oklch(96% 0.01 300);
+  --kd-text-muted: oklch(75% 0.02 300);
+  --kd-text-subtle: oklch(65% 0.02 300);
+
+  /* Accents — never more than 1-2 active at once per screen */
+  --kd-accent-green: oklch(78% 0.27 140);
+  --kd-accent-pink: oklch(70% 0.28 340);
+  --kd-accent-cyan: oklch(80% 0.16 200);
+  --kd-accent-yellow: oklch(88% 0.19 100);
+  --kd-accent-orange: oklch(72% 0.19 45);
+
+  /* Rarity frame system (7 tiers) — ultra-secret is handled separately via
+     the holo conic-gradient below, it has no flat color. */
+  --kd-rarity-commun: oklch(60% 0.02 300);
+  --kd-rarity-rare: var(--kd-accent-cyan);
+  --kd-rarity-epique: var(--kd-accent-pink);
+  --kd-rarity-legendaire: var(--kd-accent-orange);
+  --kd-rarity-mythique: var(--kd-accent-yellow);
+  --kd-rarity-secret: var(--kd-accent-green);
+
+  /* Shape */
+  --kd-radius-sm: 12px;
+  --kd-radius-md: 16px;
+  --kd-radius-lg: 20px;
+
+  /* Spacing */
+  --kd-space-1: 4px;
+  --kd-space-2: 8px;
+  --kd-space-3: 12px;
+  --kd-space-4: 16px;
+  --kd-space-5: 24px;
+  --kd-space-6: 32px;
+  --kd-space-7: 48px;
+  --kd-space-8: 64px;
+
+  /* Fonts — --font-bungee / --font-space-grotesk are set on <html> by
+     next/font in apps/web/app/layout.tsx. */
+  --kd-font-display: var(--font-bungee), cursive;
+  --kd-font-body: var(--font-space-grotesk), sans-serif;
+}
+
+/* Animated holographic border for the Ultra-secret rarity tier. */
+@keyframes kd-holo-spin {
+  from {
+    --kd-holo-angle: 0deg;
+  }
+  to {
+    --kd-holo-angle: 360deg;
+  }
+}
+
+@property --kd-holo-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}

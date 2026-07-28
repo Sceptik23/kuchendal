@@ -1,3 +1,12 @@
+@import '@kuhhandel/ui/src/tokens.css';
+
+body {
+  margin: 0;
+  background: var(--kd-bg);
+  color: var(--kd-text);
+  font-family: var(--kd-font-body);
+}
+
 /* 06_AUDIO_VFX.md §3: brief cosmetic pulse for a rare event's spotlight moment. */
 @keyframes pulse {
   0% {
