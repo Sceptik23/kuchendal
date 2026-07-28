@@ -6,6 +6,7 @@ import { useAuthStore } from "../store/authStore";
 import { MatchHistory } from "./MatchHistory";
 import { Friends } from "./Friends";
 import { Profile } from "./Profile";
+import { Leaderboards } from "./Leaderboards";
 import type { LobbyType, NarratorStyle, PublicRoomListing } from "@kuhhandel/shared-types";
 
 const NARRATOR_STYLE_LABELS: Record<NarratorStyle, string> = {
@@ -27,6 +28,7 @@ export function JoinForm() {
   const [showHistory, setShowHistory] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showLeaderboards, setShowLeaderboards] = useState(false);
   const [lobbyType, setLobbyType] = useState<LobbyType>("public");
   const [createPassword, setCreatePassword] = useState("");
   const [narratorStyle, setNarratorStyle] = useState<NarratorStyle>("sport");
@@ -131,12 +133,16 @@ export function JoinForm() {
       <button onClick={() => setShowProfile((v) => !v)}>
         {showProfile ? "Masquer" : "Voir"} mon profil
       </button>
+      <button onClick={() => setShowLeaderboards((v) => !v)}>
+        {showLeaderboards ? "Masquer" : "Voir"} les classements
+      </button>
       <button onClick={() => void signOut()}>Se déconnecter</button>
 
       {error && <p role="alert">{error}</p>}
       {showHistory && <MatchHistory userId={profile.id} />}
       {showFriends && <Friends userId={profile.id} />}
       {showProfile && <Profile userId={profile.id} />}
+      {showLeaderboards && <Leaderboards userId={profile.id} />}
     </div>
   );
 }

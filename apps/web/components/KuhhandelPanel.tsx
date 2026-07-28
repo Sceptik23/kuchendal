@@ -126,11 +126,16 @@ export function KuhhandelPanel() {
       )}
 
       {isInitiator && kuhhandel.stage === "awaiting_response" && (
-        <p>Offre envoyée, en attente de la réponse de l'adversaire…</p>
+        <p title="Ton offre reste confidentielle jusqu'à la résolution — l'adversaire ne peut pas la voir.">
+          🔒 Offre envoyée (confidentielle), en attente de la réponse de l'adversaire…
+        </p>
       )}
 
       {isTarget && kuhhandel.stage === "awaiting_response" && (
         <div>
+          <p title="Le montant exact de l'offre de l'adversaire reste inconnu tant que tu n'as pas accepté ou fait une contre-offre.">
+            🔒 Offre secrète reçue — montant inconnu tant que la résolution n'a pas eu lieu.
+          </p>
           <button onClick={() => getSocket().emit("kuhhandel:accept")}>Accepter</button>
           <MoneyPicker
             label="Contre-offrir"

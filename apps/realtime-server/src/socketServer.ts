@@ -25,8 +25,14 @@ export function createSocketServer(
   httpServer: HttpServer,
   roomManager: RoomManager = new RoomManager(),
   verifyUser: UserVerifier = noopVerifier,
+  /**
+   * Defaults to "*" for local dev. In production, set CORS_ORIGIN to the
+   * real deployed frontend origin (docs/DEPLOYMENT.md §2) so an unrelated
+   * site can't open connections against this game server.
+   */
+  corsOrigin: string = process.env["CORS_ORIGIN"] ?? "*",
 ): AppServer {
-  const io: AppServer = new Server(httpServer, { cors: { origin: "*" } });
+  const io: AppServer = new Server(httpServer, { cors: { origin: corsOrigin } });
   const socketInfoBySocketId = new Map<string, SocketInfo>();
 
   function broadcastRoom(roomCode: string, room: GameRoom): void {

@@ -132,16 +132,35 @@ export function GameTable() {
         {isMyTurn && " (toi)"}
       </p>
 
+      {/*
+        05_UI_UX.md §4: always distinguish "connu avec certitude" (ma main
+        exacte) de "partiellement connu" (nombre de cartes d'un adversaire,
+        montant caché) — jamais laisser deviner une certitude qu'on n'a pas.
+      */}
       <ul>
-        {state.players.map((p) => (
-          <li key={p.id}>
-            {p.name} — {p.moneyCount} cartes argent
-            {" — animaux : "}
-            {Object.entries(familyCounts(p.animals))
-              .map(([species, count]) => `${species} x${count}`)
-              .join(", ") || "aucun"}
-          </li>
-        ))}
+        {state.players.map((p) => {
+          const isMe = p.id === playerId;
+          return (
+            <li key={p.id}>
+              {p.name}
+              {" — "}
+              {isMe ? (
+                <span title="Montant exact connu (ta main)">
+                  ✅ {p.money?.reduce((sum, c) => sum + c.value, 0) ?? 0} en argent (
+                  {p.money?.map((c) => c.value).join(", ") ?? ""})
+                </span>
+              ) : (
+                <span title="Montant caché — seul le nombre de cartes est visible">
+                  🔒 {p.moneyCount} carte{p.moneyCount === 1 ? "" : "s"} argent (montant inconnu)
+                </span>
+              )}
+              {" — animaux (publics) : "}
+              {Object.entries(familyCounts(p.animals))
+                .map(([species, count]) => `${species} x${count}`)
+                .join(", ") || "aucun"}
+            </li>
+          );
+        })}
       </ul>
 
       {isMyTurn && noFlowInProgress && (
