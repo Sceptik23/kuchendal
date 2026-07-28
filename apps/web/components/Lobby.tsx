@@ -73,6 +73,7 @@ export function Lobby() {
                   <div className={styles.slotName}>
                     {p.name}
                     {p.id === state.hostPlayerId && <span className={styles.hostStar}>★</span>}
+                    {p.isBot && <span className={styles.botTag}>Bot</span>}
                   </div>
                   <div className={styles.readyLabel}>Prêt</div>
                   {isHost && p.id !== playerId && (

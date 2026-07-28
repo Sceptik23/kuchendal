@@ -88,10 +88,12 @@
 @keyframes ready-glow {
   0%,
   100% {
-    box-shadow: 0 0 8px oklch(78% 0.27 140 / 0.5);
+    box-shadow: 0 0 var(--kd-glow-radius-sm)
+      color-mix(in oklch, var(--kd-accent-green) var(--kd-glow-strength), transparent);
   }
   50% {
-    box-shadow: 0 0 18px oklch(78% 0.27 140 / 0.9);
+    box-shadow: 0 0 var(--kd-glow-radius-lg)
+      color-mix(in oklch, var(--kd-accent-green) var(--kd-glow-strength-strong), transparent);
   }
 }
 
@@ -140,6 +142,17 @@
 .hostStar {
   font-size: 11px;
   color: var(--kd-accent-yellow);
+}
+
+.botTag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--kd-text-subtle);
+  border: 1px solid var(--kd-border);
+  border-radius: 999px;
+  padding: 1px 6px;
 }
 
 .readyLabel {
