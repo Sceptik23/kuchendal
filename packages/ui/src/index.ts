@@ -1,1 +1,1 @@
-export const UI_PACKAGE_VERSION = '0.0.0';
+// Barrel — component exports appended by later tasks.
