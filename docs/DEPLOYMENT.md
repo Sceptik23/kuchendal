@@ -30,14 +30,23 @@ spécifiquement).
 
 Exemple avec Railway :
 1. Nouveau projet → déployer depuis le repo GitHub.
-2. **Root Directory** : `apps/realtime-server`.
+2. **Root Directory** : laisse-la à `/` (racine du repo) — PAS
+   `apps/realtime-server`. pnpm workspaces a besoin de voir
+   `pnpm-lock.yaml`/`pnpm-workspace.yaml` à la racine pour résoudre les
+   dépendances internes (`workspace:*`) ; restreindre le Root Directory au
+   sous-dossier casse cette résolution (`npm error Unsupported URL Type
+   "workspace:"`).
 3. **Build command** : `pnpm install --frozen-lockfile && pnpm --filter @kuhhandel/realtime-server... build`
    (le `...` inclut les packages internes dont il dépend :
    `game-engine`, `meta-engine`, `shared-types`, `bot-engine`,
    `narrator-engine`, `rare-events-engine`, `distinctions-engine`).
 4. **Start command** : `pnpm --filter @kuhhandel/realtime-server start`
    (lance `node dist/index.js`, cf. `apps/realtime-server/package.json`).
-5. Variables d'environnement (mêmes noms que `apps/realtime-server/.env`
+5. Le projet nécessite **Node 22+** (`.node-version` à la racine, `pnpm@11`
+   utilise un module natif indisponible sur Node 20 — repéré via
+   `ERR_UNKNOWN_BUILTIN_MODULE` en build). La plupart des hébergeurs
+   (Railway inclus) lisent `.node-version`/`engines.node` automatiquement.
+6. Variables d'environnement (mêmes noms que `apps/realtime-server/.env`
    en local) :
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY` (⚠️ jamais côté client/web)
@@ -45,7 +54,7 @@ Exemple avec Railway :
    - `PORT` (Railway/Fly/Render l'injectent généralement automatiquement —
      vérifier que `apps/realtime-server/src/index.ts` lit bien la variable
      fournie par l'hébergeur).
-6. Une fois déployé, récupère l'URL publique (ex. `https://xxx.up.railway.app`)
+7. Une fois déployé, récupère l'URL publique (ex. `https://xxx.up.railway.app`)
    et renseigne-la comme `NEXT_PUBLIC_REALTIME_URL` côté Vercel (étape 1).
 
 ### Point de vigilance sécurité avant mise en ligne publique
