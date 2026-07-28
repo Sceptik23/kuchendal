@@ -1,0 +1,42 @@
+.frame {
+  border-radius: var(--kd-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.solid {
+  background: var(--kd-surface);
+  border: 3px solid var(--rf-color);
+}
+
+.glow.solid {
+  box-shadow: 0 0 16px color-mix(in oklch, var(--rf-color) 55%, transparent);
+}
+
+.holo {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(var(--kd-surface), var(--kd-surface)) padding-box,
+    conic-gradient(
+        from var(--kd-holo-angle, 0deg),
+        var(--kd-accent-green),
+        var(--kd-accent-pink),
+        var(--kd-accent-cyan),
+        var(--kd-accent-yellow),
+        var(--kd-accent-orange),
+        var(--kd-accent-green)
+      )
+      border-box;
+  animation: kd-holo-spin 3s linear infinite;
+}
+
+.glow.holo {
+  box-shadow: 0 0 18px color-mix(in oklch, var(--kd-accent-pink) 60%, transparent);
+}
+
+.circle {
+  border-radius: 50%;
+}
