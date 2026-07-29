@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
+import { Button, Select } from "@kuhhandel/ui";
+import styles from "./GameTable.module.css";
 
 function useOwnMoney() {
   const state = useGameStore((s) => s.state);
@@ -70,35 +72,38 @@ export function KuhhandelInitiator() {
   const currentTarget = eligibleTargets.find((t) => t.player.id === targetId) ?? eligibleTargets[0]!;
 
   return (
-    <div>
-      <h3>Lancer un Kuhhandel</h3>
-      <select value={currentTarget.player.id} onChange={(e) => setTargetId(e.target.value)}>
-        {eligibleTargets.map((t) => (
-          <option key={t.player.id} value={t.player.id}>
-            {t.player.name}
-          </option>
-        ))}
-      </select>
-      <select
-        value={species || currentTarget.sharedSpecies[0]}
-        onChange={(e) => setSpecies(e.target.value)}
-      >
-        {[...new Set(currentTarget.sharedSpecies)].map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={() =>
-          getSocket().emit("turn:startKuhhandel", {
-            targetId: currentTarget.player.id,
-            species: species || currentTarget.sharedSpecies[0]!,
-          })
-        }
-      >
-        Initier
-      </button>
+    <div className={styles.kuhhandelInitiator}>
+      <h3 className={styles.kuhhandelInitiatorTitle}>Lancer un Kuhhandel</h3>
+      <div className={styles.kuhhandelInitiatorFields}>
+        <Select value={currentTarget.player.id} onChange={(e) => setTargetId(e.target.value)}>
+          {eligibleTargets.map((t) => (
+            <option key={t.player.id} value={t.player.id}>
+              {t.player.name}
+            </option>
+          ))}
+        </Select>
+        <Select
+          value={species || currentTarget.sharedSpecies[0]}
+          onChange={(e) => setSpecies(e.target.value)}
+        >
+          {[...new Set(currentTarget.sharedSpecies)].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Select>
+        <Button
+          variant="secondary"
+          onClick={() =>
+            getSocket().emit("turn:startKuhhandel", {
+              targetId: currentTarget.player.id,
+              species: species || currentTarget.sharedSpecies[0]!,
+            })
+          }
+        >
+          Initier
+        </Button>
+      </div>
     </div>
   );
 }

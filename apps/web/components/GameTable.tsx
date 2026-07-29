@@ -1,12 +1,27 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { playSound } from "../lib/sound";
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
+import { Button, InfoStatusIcon, PlayerAvatarBadge, ToastNarrator } from "@kuhhandel/ui";
 import type { DistinctionEntry, GameStateView, RareEventEntry } from "@kuhhandel/shared-types";
+import styles from "./GameTable.module.css";
+
+/**
+ * 5-token accent rotation used to give each opponent a stable identity
+ * color, matching the design handoff's opponents-row treatment (and the
+ * same accent set used for the Lobby's ready-glow).
+ */
+const OPPONENT_ACCENTS = [
+  "var(--kd-accent-green)",
+  "var(--kd-accent-pink)",
+  "var(--kd-accent-cyan)",
+  "var(--kd-accent-yellow)",
+  "var(--kd-accent-orange)",
+];
 
 function familyCounts(animals: { species: string }[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -50,23 +65,13 @@ function RareEventBanner({ state }: { state: GameStateView }) {
 
   if (!current) return null;
   return (
-    <div data-vfx={current.vfx} style={{ animation: "pulse 1.2s ease-in-out" }}>
-      ✨ {current.name} — {current.flavorText}
+    <div data-vfx={current.vfx} className={styles.rareEventBanner}>
+      <div className={styles.rareEventSweep} />
+      <div className={styles.rareEventLabel}>Événement rare</div>
+      <div className={styles.rareEventBody}>
+        ✨ {current.name} — {current.flavorText}
+      </div>
     </div>
-  );
-}
-
-function NarratorFeed({ state }: { state: GameStateView }) {
-  if (state.narratorFeed.length === 0) return null;
-  return (
-    <aside>
-      <h4>Narrateur</h4>
-      <ul>
-        {state.narratorFeed.map((message, i) => (
-          <li key={i}>{message.text}</li>
-        ))}
-      </ul>
-    </aside>
   );
 }
 
@@ -122,59 +127,89 @@ export function GameTable() {
     );
   }
 
+  const latestNarratorMessage = state.narratorFeed[state.narratorFeed.length - 1];
+
   return (
-    <div>
-      <h2>Table de jeu</h2>
-      <p>Pioche restante : {state.deckCount}</p>
-      <p>
-        Tour de :{" "}
-        {state.players.find((p) => p.id === state.activePlayerId)?.name ?? "?"}
-        {isMyTurn && " (toi)"}
-      </p>
-
-      {/*
-        05_UI_UX.md §4: always distinguish "connu avec certitude" (ma main
-        exacte) de "partiellement connu" (nombre de cartes d'un adversaire,
-        montant caché) — jamais laisser deviner une certitude qu'on n'a pas.
-      */}
-      <ul>
-        {state.players.map((p) => {
-          const isMe = p.id === playerId;
-          return (
-            <li key={p.id}>
-              {p.name}
-              {" — "}
-              {isMe ? (
-                <span title="Montant exact connu (ta main)">
-                  ✅ {p.money?.reduce((sum, c) => sum + c.value, 0) ?? 0} en argent (
-                  {p.money?.map((c) => c.value).join(", ") ?? ""})
-                </span>
-              ) : (
-                <span title="Montant caché — seul le nombre de cartes est visible">
-                  🔒 {p.moneyCount} carte{p.moneyCount === 1 ? "" : "s"} argent (montant inconnu)
-                </span>
-              )}
-              {" — animaux (publics) : "}
-              {Object.entries(familyCounts(p.animals))
-                .map(([species, count]) => `${species} x${count}`)
-                .join(", ") || "aucun"}
-            </li>
-          );
-        })}
-      </ul>
-
-      {isMyTurn && noFlowInProgress && (
-        <div>
-          <button onClick={() => getSocket().emit("turn:startAuction")}>
-            Révéler une carte (enchère)
-          </button>
-          <KuhhandelInitiator />
+    <div className={styles.shell}>
+      <div className={styles.topBar}>
+        <div className={styles.logo}>KUCHENDAL</div>
+        <div className={styles.deckCount}>Pioche restante : {state.deckCount}</div>
+        <div className={styles.turnIndicator}>
+          Tour de :{" "}
+          {state.players.find((p) => p.id === state.activePlayerId)?.name ?? "?"}
+          {isMyTurn && " (toi)"}
         </div>
-      )}
+      </div>
 
-      <AuctionPanel />
-      <KuhhandelPanel />
-      <NarratorFeed state={state} />
+      <div className={styles.table}>
+        {/*
+          05_UI_UX.md §4: always distinguish "connu avec certitude" (ma main
+          exacte) de "partiellement connu" (nombre de cartes d'un adversaire,
+          montant caché) — jamais laisser deviner une certitude qu'on n'a pas.
+          Opponents' exact money is never sent to this client (see
+          PlayerView.money: MoneyCard[] | null), so only the moneyCount view
+          is shown here.
+        */}
+        {/* TODO(Task 7): self money/animals move to the self-rail */}
+        <div className={styles.opponentsRow}>
+          {state.players
+            .filter((p) => p.id !== playerId)
+            .map((p, i) => {
+              const isActive = p.id === state.activePlayerId;
+              const accent = OPPONENT_ACCENTS[i % OPPONENT_ACCENTS.length];
+              return (
+                <div key={p.id} className={styles.opponentCard}>
+                  <div
+                    className={[styles.avatarRing, isActive ? styles.avatarRingActive : ""]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={{ "--kd-opp-accent": accent } as CSSProperties}
+                  >
+                    <PlayerAvatarBadge name={p.name} size={64} />
+                  </div>
+                  <div className={styles.opponentName}>{p.name}</div>
+                  <div className={styles.opponentMoney}>
+                    <InfoStatusIcon
+                      status="partial"
+                      label="Montant caché — seul le nombre de cartes est visible"
+                    />
+                    <span>{p.moneyCount} carte(s) argent</span>
+                  </div>
+                  <div className={styles.opponentAnimals}>
+                    {Object.entries(familyCounts(p.animals))
+                      .map(([species, count]) => `${species} x${count}`)
+                      .join(", ") || "aucun animal"}
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+
+        <div className={styles.centerStage}>
+          <AuctionPanel />
+          <KuhhandelPanel />
+          {latestNarratorMessage && (
+            <div className={styles.narratorSlot}>
+              {/*
+                GameStateView doesn't yet expose which narrator style the
+                room uses, so this is hardcoded to "sport" as a placeholder
+                until that field exists on the backend.
+              */}
+              <ToastNarrator narratorStyle="sport" message={latestNarratorMessage.text} />
+            </div>
+          )}
+        </div>
+
+        {isMyTurn && noFlowInProgress && (
+          <div className={styles.turnActions}>
+            <Button variant="primary" onClick={() => getSocket().emit("turn:startAuction")}>
+              Révéler une carte (enchère)
+            </Button>
+            <KuhhandelInitiator />
+          </div>
+        )}
+      </div>
+
       <RareEventBanner state={state} />
     </div>
   );
