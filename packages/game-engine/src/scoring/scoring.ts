@@ -1,5 +1,4 @@
 import { CARDS_PER_SPECIES, SPECIES_FAMILY_VALUE } from '../config/species.config.js';
-import { INCOMPLETE_FAMILY_VALUE } from '../config/game.config.js';
 import type { AnimalCard, Player } from '../types.js';
 
 export function computeScore(player: Player): number {
@@ -8,11 +7,15 @@ export function computeScore(player: Player): number {
     countBySpecies.set(card.species, (countBySpecies.get(card.species) ?? 0) + 1);
   }
 
-  let total = 0;
+  let completeFamiliesValue = 0;
+  let completeFamiliesCount = 0;
   for (const [species, count] of countBySpecies) {
-    total += count >= CARDS_PER_SPECIES ? SPECIES_FAMILY_VALUE[species] : INCOMPLETE_FAMILY_VALUE;
+    if (count >= CARDS_PER_SPECIES) {
+      completeFamiliesValue += SPECIES_FAMILY_VALUE[species];
+      completeFamiliesCount += 1;
+    }
   }
-  return total;
+  return completeFamiliesValue * completeFamiliesCount;
 }
 
 export function isGameOver(deck: AnimalCard[]): boolean {
