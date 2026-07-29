@@ -5,9 +5,11 @@ import { Button, Input, PlayerAvatarBadge, Select } from "@kuhhandel/ui";
 import { useGameStore } from "../store/gameStore";
 import { useAuthStore } from "../store/authStore";
 import { loadProfile, type ProfileData } from "../lib/profile";
+import { getDefaultNarratorStyle } from "../lib/preferences";
 import { Friends } from "./Friends";
 import { Profile } from "./Profile";
 import { Leaderboards } from "./Leaderboards";
+import { Settings } from "./Settings";
 import { TopNav, type HubView } from "./TopNav";
 import type { LobbyType, NarratorStyle, PublicRoomListing } from "@kuhhandel/shared-types";
 import styles from "./Hub.module.css";
@@ -62,7 +64,7 @@ export function Hub() {
   const [view, setView] = useState<HubView>("home");
   const [lobbyType, setLobbyType] = useState<LobbyType>("public");
   const [createPassword, setCreatePassword] = useState("");
-  const [narratorStyle, setNarratorStyle] = useState<NarratorStyle>("sport");
+  const [narratorStyle, setNarratorStyle] = useState<NarratorStyle>(getDefaultNarratorStyle());
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
   const [publicRooms, setPublicRooms] = useState<PublicRoomListing[] | null>(null);
@@ -189,10 +191,7 @@ export function Hub() {
 
       {view === "profil" && <Profile userId={profile.id} />}
       {view === "classements" && <Leaderboards userId={profile.id} />}
-      {view === "parametres" && (
-        // TODO(Task 12): replace with <Settings />
-        <p>Bientôt disponible.</p>
-      )}
+      {view === "parametres" && <Settings />}
     </div>
   );
 }

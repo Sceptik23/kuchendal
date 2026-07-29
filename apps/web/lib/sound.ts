@@ -4,8 +4,10 @@
  * `/sounds/<key>.mp3` doesn't exist yet or autoplay is blocked, this is a
  * silent no-op, never something the game depends on to be understandable.
  */
+import { getSoundEnabled } from "./preferences";
+
 export function playSound(key: string): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !getSoundEnabled()) return;
   try {
     const audio = new Audio(`/sounds/${key}.mp3`);
     audio.volume = 0.5;

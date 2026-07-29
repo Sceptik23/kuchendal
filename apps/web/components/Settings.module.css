@@ -1,0 +1,155 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+  color: var(--kd-text);
+  font-family: var(--kd-font-body);
+  display: flex;
+  flex-direction: column;
+  gap: var(--kd-space-5);
+}
+
+.title {
+  font-family: var(--kd-font-display);
+  font-size: 24px;
+  margin: var(--kd-space-5) 0 0;
+}
+
+.card {
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-lg);
+  padding: var(--kd-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--kd-space-3);
+}
+
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: var(--kd-space-4);
+  margin-bottom: var(--kd-space-2);
+}
+
+.username {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.linkButton {
+  padding: 4px 10px;
+  font-size: 11px;
+  margin-top: var(--kd-space-1);
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--kd-text-muted);
+}
+
+.caption {
+  font-size: 12px;
+  color: var(--kd-text-subtle);
+  margin: 0;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kd-text-muted);
+  font-weight: 700;
+  margin: 0;
+}
+
+.subLabel {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.narratorList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kd-space-2);
+}
+
+.narratorOption {
+  text-align: left;
+  font-family: var(--kd-font-body);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: var(--kd-radius-sm);
+  cursor: pointer;
+  color: var(--kd-text);
+  background: transparent;
+  border: 2px solid var(--kd-border);
+}
+
+.narratorOptionSelected {
+  background: color-mix(in oklch, var(--kd-accent-pink) 20%, transparent);
+  border-color: var(--kd-accent-pink);
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--kd-space-3);
+  padding: 10px 0;
+  border-top: 1px solid var(--kd-border);
+}
+
+.toggleLabel {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.switch {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  background: var(--kd-border);
+  display: flex;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.switchOn {
+  background: var(--kd-accent-green);
+  justify-content: flex-end;
+}
+
+.switchKnob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--kd-text);
+}
+
+.dangerCard {
+  border-color: var(--kd-accent-orange);
+}
+
+.dangerTitle {
+  color: var(--kd-accent-orange);
+}
+
+.dangerRow {
+  display: flex;
+  gap: var(--kd-space-3);
+}
+
+.dangerRow > * {
+  flex: 1;
+}
