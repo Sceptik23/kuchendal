@@ -62,38 +62,36 @@ function transferMoneyCards(
 }
 
 
-function transferAnimalCard(players: Player[], toId: string, card: AnimalCard): Player[] {
-  const payee = findPlayer(players, toId);
-  return replacePlayer(players, { ...payee, animals: [...payee.animals, card] });
-}
-
-function removeAnimalOfSpecies(
+function removeAnimalsOfSpecies(
   players: Player[],
   fromId: string,
   species: AnimalCard['species'],
-): { players: Player[]; card: AnimalCard } {
+  count: number,
+): { players: Player[]; cards: AnimalCard[] } {
   const owner = findPlayer(players, fromId);
-  const index = owner.animals.findIndex((a) => a.species === species);
-  if (index === -1) {
-    throw new Error(`Player ${fromId} does not own any ${species} to transfer.`);
+  const removed: AnimalCard[] = [];
+  let remaining = [...owner.animals];
+  for (let i = 0; i < count; i++) {
+    const index = remaining.findIndex((a) => a.species === species);
+    if (index === -1) {
+      throw new Error(`Player ${fromId} does not own enough ${species} cards to transfer ${count}.`);
+    }
+    removed.push(remaining[index]!);
+    remaining = remaining.filter((_, i2) => i2 !== index);
   }
-  const card = owner.animals[index]!;
-  const next = replacePlayer(players, {
-    ...owner,
-    animals: owner.animals.filter((_, i) => i !== index),
-  });
-  return { players: next, card };
+  const next = replacePlayer(players, { ...owner, animals: remaining });
+  return { players: next, cards: removed };
+}
+
+function transferAnimalCards(players: Player[], toId: string, cards: AnimalCard[]): Player[] {
+  const payee = findPlayer(players, toId);
+  return replacePlayer(players, { ...payee, animals: [...payee.animals, ...cards] });
 }
 
 export function applyAuctionResult(players: Player[], result: AuctionResult): Player[] {
-  let next = transferAnimalCard(players, result.cardGoesTo, result.card);
+  let next = transferAnimalCards(players, result.cardGoesTo, [result.card]);
   if (result.payment) {
-    next = transferExactMoneyCard(
-      next,
-      result.payment.from,
-      result.payment.to,
-      result.payment.amount,
-    );
+    next = transferExactMoneyCard(next, result.payment.from, result.payment.to, result.payment.amount);
   }
   return next;
 }
@@ -101,29 +99,30 @@ export function applyAuctionResult(players: Player[], result: AuctionResult): Pl
 export function applyKuhhandelResult(players: Player[], result: KuhhandelResult): Player[] {
   if (result.type === 'accept') {
     let next = transferMoneyCards(players, result.moneyFrom, result.moneyGoesTo, result.money);
-    const { players: afterRemoval, card } = removeAnimalOfSpecies(
+    const { players: afterRemoval, cards } = removeAnimalsOfSpecies(
       next,
       result.cardComesFrom,
       result.species,
+      result.cardCount,
     );
-    next = transferAnimalCard(afterRemoval, result.cardGoesTo, card);
-    return next;
+    return transferAnimalCards(afterRemoval, result.cardGoesTo, cards);
   }
 
   if (result.type === 'tie_reoffer_needed') {
     return players;
   }
 
-  // counter_resolved / tie_default_initiator_wins: only the animal moves.
+  // counter_resolved / tie_default_initiator_wins: only the animal(s) move.
   // Each side keeps the money they staked — the rulebook's "chaque joueur
   // conserve l'argent proposé par son adversaire" line means the money
   // never moves at all here (unlike an auction payment), it just stays
   // put since it was never transferred out of either hand in the first
   // place — see the design spec, Finding 5.
-  const { players: afterRemoval, card } = removeAnimalOfSpecies(
+  const { players: afterRemoval, cards } = removeAnimalsOfSpecies(
     players,
     result.loserId,
     result.species,
+    result.cardCount,
   );
-  return transferAnimalCard(afterRemoval, result.winnerId, card);
+  return transferAnimalCards(afterRemoval, result.winnerId, cards);
 }

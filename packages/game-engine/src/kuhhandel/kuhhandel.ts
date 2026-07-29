@@ -8,6 +8,8 @@ export interface KuhhandelState {
   initiatorId: string;
   targetId: string;
   species: SpeciesKey;
+  /** 2 when both players hold ≥2 of the species at trade start ("marchandage spécial") — both cards move at once. Otherwise 1. */
+  cardCount: 1 | 2;
   stage: KuhhandelStage;
   /** Secret until reveal — never exposed to the target via getPublicView. */
   initiatorOffer: MoneyCard[] | null;
@@ -18,6 +20,7 @@ export type KuhhandelResult =
   | {
       type: 'accept';
       species: SpeciesKey;
+      cardCount: 1 | 2;
       cardGoesTo: string;
       cardComesFrom: string;
       moneyGoesTo: string;
@@ -27,6 +30,7 @@ export type KuhhandelResult =
   | {
       type: 'counter_resolved';
       species: SpeciesKey;
+      cardCount: 1 | 2;
       winnerId: string;
       loserId: string;
       potMoney: MoneyCard[];
@@ -38,6 +42,7 @@ export type KuhhandelResult =
   | {
       type: 'tie_default_initiator_wins';
       species: SpeciesKey;
+      cardCount: 1 | 2;
       winnerId: string;
       loserId: string;
       potMoney: MoneyCard[];
@@ -57,11 +62,17 @@ export function startKuhhandel(
   initiatorId: string,
   targetId: string,
   species: SpeciesKey,
+  initiatorAnimals: AnimalCard[],
+  targetAnimals: AnimalCard[],
 ): KuhhandelState {
+  const ownedBy = (animals: AnimalCard[]) => animals.filter((a) => a.species === species).length;
+  const cardCount: 1 | 2 = ownedBy(initiatorAnimals) >= 2 && ownedBy(targetAnimals) >= 2 ? 2 : 1;
+
   return {
     initiatorId,
     targetId,
     species,
+    cardCount,
     stage: 'awaiting_initiator_offer',
     initiatorOffer: null,
     tieRound: 0,
@@ -89,6 +100,7 @@ export function respondAccept(state: KuhhandelState): Extract<KuhhandelResult, {
   return {
     type: 'accept',
     species: state.species,
+    cardCount: state.cardCount,
     cardGoesTo: state.initiatorId,
     cardComesFrom: state.targetId,
     moneyGoesTo: state.targetId,
@@ -116,6 +128,7 @@ export function respondCounter(state: KuhhandelState, counterOffer: MoneyCard[])
       return {
         type: 'tie_default_initiator_wins',
         species: state.species,
+        cardCount: state.cardCount,
         winnerId: state.initiatorId,
         loserId: state.targetId,
         potMoney,
@@ -128,6 +141,7 @@ export function respondCounter(state: KuhhandelState, counterOffer: MoneyCard[])
   return {
     type: 'counter_resolved',
     species: state.species,
+    cardCount: state.cardCount,
     winnerId: initiatorWins ? state.initiatorId : state.targetId,
     loserId: initiatorWins ? state.targetId : state.initiatorId,
     potMoney,

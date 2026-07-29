@@ -460,7 +460,7 @@ export class GameRoom {
     if (!canInitiateKuhhandel(initiator.animals, target.animals, species)) {
       throw new Error('Both players must own at least one animal of that species.');
     }
-    this.kuhhandel = startKuhhandel(initiatorId, targetId, species);
+    this.kuhhandel = startKuhhandel(initiatorId, targetId, species, initiator.animals, target.animals);
     this.runBotLoop();
   }
 

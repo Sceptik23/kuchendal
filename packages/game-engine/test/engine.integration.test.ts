@@ -87,7 +87,13 @@ describe('full scripted game — Kuhhandel applied to real player hands', () => 
       },
     ];
 
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel(
+      'initiator',
+      'target',
+      'vache',
+      players[0]!.animals,
+      players[1]!.animals,
+    );
     const offer = [players[0]!.money[0]!];
     state = submitInitiatorOffer(state, offer);
 
@@ -121,7 +127,13 @@ describe('full scripted game — Kuhhandel applied to real player hands', () => 
       },
     ];
 
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel(
+      'initiator',
+      'target',
+      'vache',
+      players[0]!.animals,
+      players[1]!.animals,
+    );
     state = submitInitiatorOffer(state, [players[0]!.money[0]!]);
 
     const result = respondCounter(state, [players[1]!.money[0]!]);
@@ -138,5 +150,48 @@ describe('full scripted game — Kuhhandel applied to real player hands', () => 
     expect(initiator.money.map((m) => m.id)).toEqual(['m-100']); // kept their own stake only
     expect(target.animals).toHaveLength(0);
     expect(target.money.map((m) => m.id)).toEqual(['m-50']); // kept their own stake too
+  });
+
+  it('special 2-card trade: both cards move at once when both sides hold 2', () => {
+    let players: Player[] = [
+      {
+        id: 'initiator',
+        name: 'initiator',
+        money: [{ id: 'm-100', value: 100 }],
+        animals: [
+          { id: 'vache-a1', species: 'vache' },
+          { id: 'vache-a2', species: 'vache' },
+        ],
+      },
+      {
+        id: 'target',
+        name: 'target',
+        money: [],
+        animals: [
+          { id: 'vache-b1', species: 'vache' },
+          { id: 'vache-b2', species: 'vache' },
+        ],
+      },
+    ];
+
+    let state = startKuhhandel(
+      'initiator',
+      'target',
+      'vache',
+      players[0]!.animals,
+      players[1]!.animals,
+    );
+    expect(state.cardCount).toBe(2);
+
+    state = submitInitiatorOffer(state, [players[0]!.money[0]!]);
+    const result = respondAccept(state);
+    players = applyKuhhandelResult(players, result);
+
+    const initiator = players.find((p) => p.id === 'initiator')!;
+    const target = players.find((p) => p.id === 'target')!;
+    expect(initiator.animals.map((a) => a.id).sort()).toEqual(
+      ['vache-a1', 'vache-a2', 'vache-b1', 'vache-b2'].sort(),
+    );
+    expect(target.animals).toHaveLength(0);
   });
 });

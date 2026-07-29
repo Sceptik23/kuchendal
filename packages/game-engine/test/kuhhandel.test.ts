@@ -10,6 +10,7 @@ import {
 import type { AnimalCard, MoneyCard } from '../src/types.js';
 
 const vache: AnimalCard = { id: 'vache-0', species: 'vache' };
+const vache2: AnimalCard = { id: 'vache-2', species: 'vache' };
 
 function money(...values: MoneyCard['value'][]): MoneyCard[] {
   return values.map((value, i) => ({ id: `m-${value}-${i}`, value }));
@@ -26,7 +27,7 @@ describe('canInitiateKuhhandel', () => {
 
 describe('kuhhandel — secret offer & accept', () => {
   it("hides the initiator's offer from the target until it is revealed", () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100, 50));
 
     const targetView = getPublicView(state, 'target');
@@ -37,7 +38,7 @@ describe('kuhhandel — secret offer & accept', () => {
   });
 
   it('accept: target receives the offered money, initiator receives the animal', () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100, 50));
 
     const result = respondAccept(state);
@@ -45,6 +46,7 @@ describe('kuhhandel — secret offer & accept', () => {
     expect(result).toEqual({
       type: 'accept',
       species: 'vache',
+      cardCount: 1,
       cardGoesTo: 'initiator',
       cardComesFrom: 'target',
       moneyGoesTo: 'target',
@@ -54,7 +56,7 @@ describe('kuhhandel — secret offer & accept', () => {
   });
 
   it('reveals both offers to all viewers once resolved', () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100));
     respondAccept(state);
 
@@ -67,7 +69,7 @@ describe('kuhhandel — secret offer & accept', () => {
 
 describe('kuhhandel — counter-offer resolution', () => {
   it('initiator wins when their secret offer is strictly higher', () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100));
 
     const result = respondCounter(state, money(50));
@@ -75,6 +77,7 @@ describe('kuhhandel — counter-offer resolution', () => {
     expect(result).toEqual({
       type: 'counter_resolved',
       species: 'vache',
+      cardCount: 1,
       winnerId: 'initiator',
       loserId: 'target',
       potMoney: money(100).concat(money(50)),
@@ -82,7 +85,7 @@ describe('kuhhandel — counter-offer resolution', () => {
   });
 
   it('target wins when their counter-offer is strictly higher', () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(50));
 
     const result = respondCounter(state, money(100));
@@ -95,7 +98,7 @@ describe('kuhhandel — counter-offer resolution', () => {
   });
 
   it('requests a new secret offer round on a strict tie (first tie)', () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100));
 
     const result = respondCounter(state, money(100));
@@ -104,7 +107,7 @@ describe('kuhhandel — counter-offer resolution', () => {
   });
 
   it('gives the win to the initiator by default after the max tie-break rounds (config)', () => {
-    let state = startKuhhandel('initiator', 'target', 'vache');
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100));
     const firstTie = respondCounter(state, money(100));
     expect(firstTie).toEqual({ type: 'tie_reoffer_needed', tieRound: 1 });
@@ -115,9 +118,29 @@ describe('kuhhandel — counter-offer resolution', () => {
     expect(secondTie).toEqual({
       type: 'tie_default_initiator_wins',
       species: 'vache',
+      cardCount: 1,
       winnerId: 'initiator',
       loserId: 'target',
       potMoney: money(200).concat(money(200)),
     });
+  });
+});
+
+describe('startKuhhandel — special 2-card trade (rulebook: "marchandage spécial")', () => {
+  it('sets cardCount to 2 when both players hold at least 2 of the species', () => {
+    const initiatorAnimals = [vache, vache2];
+    const targetAnimals = [
+      { id: 'vache-3', species: 'vache' as const },
+      { id: 'vache-4', species: 'vache' as const },
+    ];
+    const state = startKuhhandel('initiator', 'target', 'vache', initiatorAnimals, targetAnimals);
+    expect(state.cardCount).toBe(2);
+  });
+
+  it('sets cardCount to 1 when either player holds only one of the species', () => {
+    const initiatorAnimals = [vache, vache2];
+    const targetAnimals = [{ id: 'vache-3', species: 'vache' as const }];
+    const state = startKuhhandel('initiator', 'target', 'vache', initiatorAnimals, targetAnimals);
+    expect(state.cardCount).toBe(1);
   });
 });
