@@ -61,22 +61,6 @@ function transferMoneyCards(
   return next;
 }
 
-/**
- * Removes every card whose id appears in `cards` from every player's hand
- * (regardless of who currently holds it), then gives all of them to the
- * winner. Used for Kuhhandel counter-offer resolution: both the winner's
- * and loser's staked cards must leave their respective hands before the
- * whole pot is handed to the winner (cf. GDD §3.2.4).
- */
-function movePotToWinner(players: Player[], winnerId: string, potMoney: MoneyCard[]): Player[] {
-  const potIds = new Set(potMoney.map((c) => c.id));
-  const withoutPot = players.map((p) => ({
-    ...p,
-    money: p.money.filter((c) => !potIds.has(c.id)),
-  }));
-  const winner = findPlayer(withoutPot, winnerId);
-  return replacePlayer(withoutPot, { ...winner, money: [...winner.money, ...potMoney] });
-}
 
 function transferAnimalCard(players: Player[], toId: string, card: AnimalCard): Player[] {
   const payee = findPlayer(players, toId);
@@ -130,13 +114,16 @@ export function applyKuhhandelResult(players: Player[], result: KuhhandelResult)
     return players;
   }
 
-  // counter_resolved / tie_default_initiator_wins: winner takes the pot and the loser's animal.
+  // counter_resolved / tie_default_initiator_wins: only the animal moves.
+  // Each side keeps the money they staked — the rulebook's "chaque joueur
+  // conserve l'argent proposé par son adversaire" line means the money
+  // never moves at all here (unlike an auction payment), it just stays
+  // put since it was never transferred out of either hand in the first
+  // place — see the design spec, Finding 5.
   const { players: afterRemoval, card } = removeAnimalOfSpecies(
     players,
     result.loserId,
     result.species,
   );
-  let next = transferAnimalCard(afterRemoval, result.winnerId, card);
-  next = movePotToWinner(next, result.winnerId, result.potMoney);
-  return next;
+  return transferAnimalCard(afterRemoval, result.winnerId, card);
 }

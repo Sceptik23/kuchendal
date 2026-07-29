@@ -105,7 +105,7 @@ describe('full scripted game — Kuhhandel applied to real player hands', () => 
     expect(target.animals).toHaveLength(0);
   });
 
-  it("counter: the winner takes the loser's animal and both stakes", () => {
+  it('counter: only the animal moves — each side keeps the money it staked', () => {
     let players: Player[] = [
       {
         id: 'initiator',
@@ -135,8 +135,8 @@ describe('full scripted game — Kuhhandel applied to real player hands', () => 
     expect(initiator.animals.map((a) => a.id)).toEqual(
       expect.arrayContaining(['vache-a', 'vache-b']),
     );
-    expect(initiator.money.map((m) => m.id).sort()).toEqual(['m-100', 'm-50'].sort());
+    expect(initiator.money.map((m) => m.id)).toEqual(['m-100']); // kept their own stake only
     expect(target.animals).toHaveLength(0);
-    expect(target.money).toHaveLength(0);
+    expect(target.money.map((m) => m.id)).toEqual(['m-50']); // kept their own stake too
   });
 });
