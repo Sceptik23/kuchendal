@@ -91,20 +91,20 @@ describe('GameRoom — Kuhhandel turn', () => {
     const p3 = room.join('p3');
     room.start();
 
-    // Deck order for rng=()=>0 starts with three "cochon" cards in a row.
+    // Deck order for rng=()=>0 starts with three "coq" cards in a row.
     room.startAuction(p1);
     room.placeBid(p2, 10);
     room.pass(p3);
-    room.sellerDecision(p1, 'sell'); // p2 now owns 1 cochon
+    room.sellerDecision(p1, 'sell'); // p2 now owns 1 coq
 
     room.startAuction(p2);
     room.placeBid(p3, 10);
     room.pass(p1);
-    room.sellerDecision(p2, 'sell'); // p3 now owns 1 cochon
+    room.sellerDecision(p2, 'sell'); // p3 now owns 1 coq
 
     const deckCountBeforeKuhhandel = room.getViewFor(p3).deckCount;
 
-    room.startKuhhandel(p3, p2, 'cochon');
+    room.startKuhhandel(p3, p2, 'coq');
     const offer = room
       .getViewFor(p3)
       .players.find((p) => p.id === p3)!
@@ -137,7 +137,7 @@ describe('GameRoom — Kuhhandel turn', () => {
     room.pass(p1);
     room.sellerDecision(p2, 'sell');
 
-    room.startKuhhandel(p3, p2, 'cochon');
+    room.startKuhhandel(p3, p2, 'coq');
     const offer = room
       .getViewFor(p3)
       .players.find((p) => p.id === p3)!
