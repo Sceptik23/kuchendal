@@ -1,0 +1,126 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.title {
+  font-family: var(--kd-font-display);
+  font-size: 30px;
+  margin: 0;
+  text-align: center;
+  color: var(--kd-text);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.categorySelect {
+  font-family: var(--kd-font-body);
+  font-size: 14px;
+}
+
+.scopeTabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.scopeTab {
+  font-family: var(--kd-font-display);
+  font-size: 12px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--kd-text);
+  background: transparent;
+  border: 2px solid var(--kd-border);
+  transition: all 0.2s ease;
+}
+
+.scopeTab:hover {
+  border-color: var(--kd-accent-pink);
+}
+
+.scopeTabActive {
+  background: oklch(28% 0.05 340);
+  border-color: var(--kd-accent-pink);
+  color: var(--kd-text);
+}
+
+.listContainer {
+  background: var(--kd-surface-alt);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-lg);
+  padding: 8px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.entry:last-child {
+  border-bottom: none;
+}
+
+.rankNumeral {
+  font-family: var(--kd-font-display);
+  font-size: 18px;
+  font-weight: bold;
+  width: 32px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.username {
+  font-size: 14px;
+  color: var(--kd-text);
+  word-break: break-word;
+}
+
+.usernameHighlight {
+  font-weight: 700;
+  color: var(--kd-accent-yellow);
+}
+
+.value {
+  font-family: var(--kd-font-display);
+  font-size: 16px;
+  color: var(--kd-accent-yellow);
+  font-weight: bold;
+  flex-shrink: 0;
+  min-width: 60px;
+  text-align: right;
+}
+
+.entryCurrentUser {
+  background: rgba(112, 44, 132, 0.15);
+  border-radius: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  margin: 4px 0;
+}
+
+.emptyState {
+  text-align: center;
+  color: var(--kd-text-subtle);
+  font-size: 14px;
+  padding: 24px;
+  margin: 0;
+}
