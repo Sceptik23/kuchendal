@@ -352,6 +352,11 @@
 }
 
 .finishedWinner {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
   font-family: var(--kd-font-display);
   font-size: 44px;
   margin-top: var(--kd-space-1);

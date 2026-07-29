@@ -58,6 +58,9 @@ habiller :
       cohérentes visuellement (cf. `05_UI_UX.md` §4)
 
 ## 4. Avatars joueur
+> `PlayerAvatarBadge` is fully styled and wired (ring, status dot, sizes)
+> and currently falls back to initials-on-color — genuinely missing is
+> only the actual predefined artwork set below, not the component.
 - [ ] Set d'avatars prédéfinis (combien ? ex. 12-20 pour commencer)
 - [ ] Emplacement pour avatar uploadé par l'utilisateur (juste le cadre/
       style d'affichage, pas l'asset lui-même)
@@ -66,21 +69,30 @@ habiller :
 ## 5. Écrans complets (`05_UI_UX.md` §2)
 Maquettes ou direction visuelle pour chacun (l'existant est fonctionnel,
 non stylé) :
-- [ ] Accueil / Auth
-- [ ] Hub joueur (profil résumé, amis en ligne, créer/rejoindre)
-- [ ] Lobby (liste joueurs, réglages hôte, invite/QR code)
-- [ ] Table de jeu (vue desktop "table ronde")
-- [ ] Table de jeu (vue mobile, liste verticale + zone perso fixe)
-- [ ] Résolution d'enchère (overlay historique + décision vendeur)
-- [ ] Résolution de Kuhhandel (zone de mise secrète, compte à rebours reveal)
-- [ ] Fin de partie / Hall of Shame-Fame
-- [ ] Profil public (stats, badges, titres, historique)
-- [ ] Classements
-- [ ] Paramètres de compte
+- [x] Accueil / Auth
+- [x] Hub joueur (profil résumé, amis en ligne, créer/rejoindre)
+- [x] Lobby (liste joueurs, réglages hôte, invite/QR code)
+- [x] Table de jeu (vue desktop "table ronde")
+- [x] Table de jeu (vue mobile, liste verticale + zone perso fixe — layout
+      responsive géré par les mêmes composants/CSS, pas un écran distinct)
+- [x] Résolution d'enchère (overlay historique + décision vendeur — pas de
+      "bid history" persistante, cf. §gap-report ; l'offre la plus haute et
+      la décision vendeur sont stylées)
+- [x] Résolution de Kuhhandel (zone de mise secrète ; pas de compte à
+      rebours/reveal timé, cf. gap report — la résolution est instantanée
+      côté serveur, mais le plateau d'offre secrète est stylé)
+- [x] Fin de partie / Hall of Shame-Fame
+- [x] Profil public (stats, badges, titres, historique)
+- [x] Classements
+- [x] Paramètres de compte
 
 ## 6. Narrateur — identité visuelle par style (4 styles existants)
 Pour chacun : une icône/avatar de narrateur + un style de bulle de texte
 distinct (couleur/police/cadre) :
+> `ToastNarrator` (`packages/ui/src/ToastNarrator/`) ships the "bulle de
+> texte distincte" half of this already — each style gets its own accent
+> color/label. The remaining gap is purely the icon/avatar artwork per
+> style, kept unchecked below.
 - [ ] Commentateur sportif
 - [ ] Documentaire animalier
 - [ ] Western
