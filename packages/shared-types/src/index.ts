@@ -1,6 +1,7 @@
 import type {
   AnimalCard,
   AuctionState,
+  GamePhase,
   KuhhandelPublicView,
   MoneyCard,
 } from "@kuhhandel/game-engine";
@@ -8,7 +9,7 @@ import type { NarratorMessage, NarratorStyle } from "@kuhhandel/narrator-engine"
 import type { DistinctionEntry } from "@kuhhandel/distinctions-engine";
 import type { RareEventEntry } from "@kuhhandel/rare-events-engine";
 
-export type { NarratorMessage, NarratorStyle, DistinctionEntry, RareEventEntry };
+export type { NarratorMessage, NarratorStyle, DistinctionEntry, RareEventEntry, GamePhase };
 
 /** Species value table + key union — see `./species.ts` for why this is a
  * static local copy rather than a re-export from `@kuhhandel/game-engine`. */
@@ -36,6 +37,7 @@ export interface PlayerView {
 
 export interface GameStateView {
   status: RoomStatus;
+  phase: GamePhase;
   players: PlayerView[];
   activePlayerId: string | null;
   hostPlayerId: string | null;

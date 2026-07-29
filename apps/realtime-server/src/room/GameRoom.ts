@@ -6,6 +6,10 @@ import {
   dealStartingMoney,
   computeScore,
   isGameOver,
+  isDeckExhausted,
+  hasIncompleteFamilyAnimal,
+  isGoldenDonkeyCard,
+  distributeGoldenDonkeyBonus,
   nextPlayerIndex,
   startAuction,
   placeBid as engPlaceBid,
@@ -23,6 +27,7 @@ import {
 import type {
   AnimalCard,
   AuctionState,
+  GamePhase,
   KuhhandelState,
   MoneyBank,
   MoneyCard,
@@ -102,6 +107,8 @@ export class GameRoom {
   private finalDistinctions: DistinctionEntry[] = [];
   private rareEventsFeed: RareEventEntry[] = [];
   private moneyBank: MoneyBank = createMoneyBank();
+  private phase: GamePhase = 'AUCTION_FLOW';
+  private donkeyRevealCount = 0;
 
   constructor(
     private readonly rng: RandomSource = Math.random,
@@ -112,6 +119,7 @@ export class GameRoom {
     private readonly persistence: GamePersistenceAdapter = new NullPersistenceAdapter(),
     private readonly narratorStyle: NarratorStyle = 'sport',
     private readonly narratorProvider: NarratorProvider = new TemplateNarratorProvider(rng),
+    private readonly deckFactory: () => AnimalCard[] = () => createShuffledDeck(rng),
   ) {}
 
   private botConfig(playerId: string) {
@@ -204,7 +212,7 @@ export class GameRoom {
     if (this.players.length < MIN_PLAYERS) {
       throw new Error(`At least ${MIN_PLAYERS} players are required to start.`);
     }
-    this.deck = createShuffledDeck(this.rng);
+    this.deck = this.deckFactory();
     const { bank, hands } = this.startingMoneyFactory(this.moneyBank, this.players.length);
     this.moneyBank = bank;
     this.players = this.players.map((p, i) => ({ ...p, money: hands[i]! }));
@@ -323,45 +331,16 @@ export class GameRoom {
   private endTurn(): void {
     this.auction = null;
     this.kuhhandel = null;
-    if (isGameOver(this.deck)) {
-      this.status = 'finished';
-      const scored = this.players
-        .map((p) => ({ playerId: p.id, score: computeScore(p) }))
-        .sort((a, b) => b.score - a.score);
-      const results = scored.map(({ playerId, score }, index) => ({
-        userId: this.userIdByPlayerId.get(playerId) ?? null,
-        score,
-        rank: index + 1,
-      }));
-      this.withGameId((gameId) => this.persistence.finishGame(gameId, results));
 
-      const topScore = scored[0]!.score;
-      const winnerIds = new Set(scored.filter((s) => s.score === topScore).map((s) => s.playerId));
-      const summaries = this.statsTracker.buildSummaries(this.players, winnerIds);
-      for (const player of this.players) {
-        const userId = this.userIdByPlayerId.get(player.id);
-        if (!userId) continue; // guests/bots have no cross-game progression
-        const summary = summaries.get(player.id);
-        if (!summary) continue;
-        awardGameProgress(this.persistence, userId, summary).catch((error: unknown) =>
-          console.error('[meta]', error),
-        );
-      }
+    if (isDeckExhausted(this.deck)) {
+      this.phase = 'FORCED_KUHHANDEL';
+    }
 
-      const facts = this.statsTracker.buildHallOfFameFacts(this.players);
-      this.finalDistinctions = computeDistinctions(facts);
-      this.withGameId((gameId) =>
-        this.persistence.saveHallOfFameShameEntries(
-          gameId,
-          this.finalDistinctions.map((entry) => ({
-            userId: this.userIdByPlayerId.get(entry.playerId) ?? null,
-            distinctionKey: entry.key,
-            metricValue: entry.metricValue,
-          })),
-        ),
-      );
+    if (isGameOver(this.players)) {
+      this.finishGame();
       return;
     }
+
     this.statsTracker.recordLeaderCheckpoint(this.players, this.deck.length);
     const scored = this.players
       .map((p) => ({ id: p.id, score: computeScore(p) }))
@@ -381,6 +360,12 @@ export class GameRoom {
     }
 
     this.activePlayerIndex = nextPlayerIndex(this.activePlayerIndex, this.players.length);
+    // Rulebook: once Kuhhandel is mandatory, a player holding only complete
+    // families (or nothing) cannot participate and must pass automatically.
+    while (this.phase === 'FORCED_KUHHANDEL' && !hasIncompleteFamilyAnimal(this.activePlayer.animals)) {
+      this.activePlayerIndex = nextPlayerIndex(this.activePlayerIndex, this.players.length);
+    }
+
     this.turnNumber += 1;
     this.withGameId((gameId) =>
       this.persistence.saveSnapshot(gameId, this.turnNumber, {
@@ -391,17 +376,65 @@ export class GameRoom {
     );
   }
 
+  private finishGame(): void {
+    this.phase = 'GAME_OVER';
+    this.status = 'finished';
+    const scored = this.players
+      .map((p) => ({ playerId: p.id, score: computeScore(p) }))
+      .sort((a, b) => b.score - a.score);
+    const results = scored.map(({ playerId, score }, index) => ({
+      userId: this.userIdByPlayerId.get(playerId) ?? null,
+      score,
+      rank: index + 1,
+    }));
+    this.withGameId((gameId) => this.persistence.finishGame(gameId, results));
+
+    const topScore = scored[0]!.score;
+    const winnerIds = new Set(scored.filter((s) => s.score === topScore).map((s) => s.playerId));
+    const summaries = this.statsTracker.buildSummaries(this.players, winnerIds);
+    for (const player of this.players) {
+      const userId = this.userIdByPlayerId.get(player.id);
+      if (!userId) continue; // guests/bots have no cross-game progression
+      const summary = summaries.get(player.id);
+      if (!summary) continue;
+      awardGameProgress(this.persistence, userId, summary).catch((error: unknown) =>
+        console.error('[meta]', error),
+      );
+    }
+
+    const facts = this.statsTracker.buildHallOfFameFacts(this.players);
+    this.finalDistinctions = computeDistinctions(facts);
+    this.withGameId((gameId) =>
+      this.persistence.saveHallOfFameShameEntries(
+        gameId,
+        this.finalDistinctions.map((entry) => ({
+          userId: this.userIdByPlayerId.get(entry.playerId) ?? null,
+          distinctionKey: entry.key,
+          metricValue: entry.metricValue,
+        })),
+      ),
+    );
+  }
+
   startAuction(playerId: string): void {
     this.requireActionable();
     this.requireActivePlayer(playerId);
     if (this.auction || this.kuhhandel) {
       throw new Error('A flow is already in progress this turn.');
     }
-    if (isGameOver(this.deck)) {
-      throw new Error('The deck is empty, no card left to auction.');
+    if (isDeckExhausted(this.deck)) {
+      throw new Error('The deck is empty, no card left to auction — Kuhhandel is now mandatory.');
     }
     const card = this.deck[0]!;
     this.deck = this.deck.slice(1);
+
+    if (isGoldenDonkeyCard(card)) {
+      const { bank, players } = distributeGoldenDonkeyBonus(this.moneyBank, this.players, this.donkeyRevealCount);
+      this.moneyBank = bank;
+      this.players = players;
+      this.donkeyRevealCount += 1;
+    }
+
     const otherIds = this.players.filter((p) => p.id !== playerId).map((p) => p.id);
     this.currentAuctionBidderIds = otherIds;
     this.auction = startAuction(card, playerId, otherIds);
@@ -440,7 +473,7 @@ export class GameRoom {
     const result = resolveAuction(this.requireAuction(), decision);
     this.players = applyAuctionResult(this.players, result);
     this.statsTracker.onAuctionResolved(result, playerId, this.currentAuctionBidderIds);
-    if (isGameOver(this.deck)) {
+    if (isDeckExhausted(this.deck)) {
       const buyer = this.findPlayer(result.cardGoesTo);
       this.statsTracker.onFinalCardResolved(buyer.id, result.card.species, buyer.animals);
     }
@@ -572,6 +605,7 @@ export class GameRoom {
 
     return {
       status: this.status,
+      phase: this.phase,
       players,
       activePlayerId: this.status === 'in_progress' ? this.activePlayer.id : null,
       hostPlayerId: this.hostPlayerId,
