@@ -5,6 +5,7 @@ export * from "./config/species.config.js";
 export * from "./config/money.config.js";
 export * from "./config/kuhhandel.config.js";
 export * from "./config/game.config.js";
+export * from "./money/moneyBank.js";
 export * from "./setup/createDeck.js";
 export * from "./setup/createStartingMoney.js";
 export * from "./auction/auction.js";
