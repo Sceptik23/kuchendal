@@ -10,6 +10,11 @@ import type { RareEventEntry } from "@kuhhandel/rare-events-engine";
 
 export type { NarratorMessage, NarratorStyle, DistinctionEntry, RareEventEntry };
 
+/** Species value table + key union, re-exported so `apps/web` doesn't need
+ * a direct dependency on `@kuhhandel/game-engine` (cf. Task 7 brief). */
+export { SPECIES_FAMILY_VALUE } from "@kuhhandel/game-engine";
+export type { SpeciesKey } from "@kuhhandel/game-engine";
+
 export type RoomStatus = "lobby" | "in_progress" | "finished";
 export type LobbyType = "public" | "private" | "password";
 

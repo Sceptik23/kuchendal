@@ -6,8 +6,14 @@ import { getSocket } from "../lib/socket";
 import { playSound } from "../lib/sound";
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
-import { Button, InfoStatusIcon, PlayerAvatarBadge, ToastNarrator } from "@kuhhandel/ui";
-import type { DistinctionEntry, GameStateView, RareEventEntry } from "@kuhhandel/shared-types";
+import { Button, InfoStatusIcon, PlayerAvatarBadge, PlayingCard, ToastNarrator } from "@kuhhandel/ui";
+import {
+  SPECIES_FAMILY_VALUE,
+  type DistinctionEntry,
+  type GameStateView,
+  type RareEventEntry,
+  type SpeciesKey,
+} from "@kuhhandel/shared-types";
 import styles from "./GameTable.module.css";
 
 /**
@@ -22,6 +28,40 @@ const OPPONENT_ACCENTS = [
   "var(--kd-accent-yellow)",
   "var(--kd-accent-orange)",
 ];
+
+/**
+ * Species keys are lowercase ASCII (`cochon`, `chevre`, `ane`, ...) but the
+ * extracted card artwork filenames use capitalized, accented French names
+ * (`Cochon`, `Chèvre`, `Âne`, ...) — see `apps/web/app/style-guide/page.tsx`
+ * for the source pattern. `boeuf` has no artwork (Phase 1 style guide),
+ * so it maps to a slot that intentionally doesn't resolve to a real file,
+ * letting `PlayingCard`'s placeholder fallback render instead.
+ */
+const SPECIES_IMAGE_SLOT: Record<SpeciesKey, string> = {
+  cochon: "animal-Cochon",
+  oie: "animal-Oie",
+  mouton: "animal-Mouton",
+  chevre: "animal-Chèvre",
+  ane: "animal-Âne",
+  chien: "animal-Chien",
+  chat: "animal-Chat",
+  cheval: "animal-Cheval",
+  boeuf: "animal-missing",
+  vache: "animal-Vache",
+};
+
+const SPECIES_LABEL: Record<SpeciesKey, string> = {
+  cochon: "Cochon",
+  oie: "Oie",
+  mouton: "Mouton",
+  chevre: "Chèvre",
+  ane: "Âne",
+  chien: "Chien",
+  chat: "Chat",
+  cheval: "Cheval",
+  boeuf: "Bœuf",
+  vache: "Vache",
+};
 
 function familyCounts(animals: { species: string }[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -108,6 +148,7 @@ export function GameTable() {
 
   const isMyTurn = state.activePlayerId === playerId;
   const noFlowInProgress = !state.auction && !state.kuhhandel;
+  const currentPlayer = state.players.find((p) => p.id === playerId);
 
   if (state.status === "finished") {
     return (
@@ -150,7 +191,6 @@ export function GameTable() {
           PlayerView.money: MoneyCard[] | null), so only the moneyCount view
           is shown here.
         */}
-        {/* TODO(Task 7): self money/animals move to the self-rail */}
         <div className={styles.opponentsRow}>
           {state.players
             .filter((p) => p.id !== playerId)
@@ -186,7 +226,21 @@ export function GameTable() {
         </div>
 
         <div className={styles.centerStage}>
-          <AuctionPanel />
+          {state.auction && (
+            <div className={styles.auctionStage}>
+              <div className={styles.auctionCard}>
+                <PlayingCard
+                  variant="animal"
+                  label={SPECIES_LABEL[state.auction.card.species]}
+                  value={SPECIES_FAMILY_VALUE[state.auction.card.species]}
+                  imageSlot={SPECIES_IMAGE_SLOT[state.auction.card.species]}
+                  accentColor="var(--kd-accent-cyan)"
+                />
+              </div>
+              <AuctionPanel />
+            </div>
+          )}
+          {!state.auction && <AuctionPanel />}
           <KuhhandelPanel />
           {latestNarratorMessage && (
             <div className={styles.narratorSlot}>
@@ -209,6 +263,37 @@ export function GameTable() {
           </div>
         )}
       </div>
+
+      {currentPlayer && (
+        <div className={styles.selfRail}>
+          <div className={styles.selfIdentity}>
+            <PlayerAvatarBadge name={currentPlayer.name} size={56} />
+            <div className={styles.selfName}>{currentPlayer.name} (toi)</div>
+            <div className={styles.selfMoney}>
+              <InfoStatusIcon status="known" label="Montant exact connu (ta main)" />
+              <span>
+                {currentPlayer.money?.reduce((sum, c) => sum + c.value, 0) ?? 0} en argent
+              </span>
+            </div>
+          </div>
+          <div className={styles.selfHand}>
+            {currentPlayer.animals.length === 0 && (
+              <span className={styles.selfHandEmpty}>Aucun animal</span>
+            )}
+            {currentPlayer.animals.map((a, i) => (
+              <div key={a.id} className={styles.selfHandCard}>
+                <PlayingCard
+                  variant="animal"
+                  label={SPECIES_LABEL[a.species]}
+                  value={SPECIES_FAMILY_VALUE[a.species]}
+                  imageSlot={SPECIES_IMAGE_SLOT[a.species]}
+                  accentColor={OPPONENT_ACCENTS[i % OPPONENT_ACCENTS.length] as string}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <RareEventBanner state={state} />
     </div>

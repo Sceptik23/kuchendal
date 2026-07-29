@@ -1,0 +1,82 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kd-space-4);
+  min-width: 280px;
+  max-width: 420px;
+  padding: var(--kd-space-4);
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-md);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--kd-font-display);
+  font-size: 15px;
+  color: var(--kd-text);
+}
+
+/* "Meilleure offre" bid-ticker treatment: Bungee amount in
+   --kd-accent-yellow, inside a --kd-accent-cyan bordered card. */
+
+.ticker {
+  display: flex;
+  align-items: center;
+  gap: var(--kd-space-2);
+  margin: 0;
+  padding: var(--kd-space-2) var(--kd-space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kd-text-muted);
+  background: var(--kd-surface-alt);
+  border: 2px solid var(--kd-accent-cyan);
+  border-radius: var(--kd-radius-sm);
+  box-shadow: 0 0 var(--kd-glow-radius-sm)
+    color-mix(in oklch, var(--kd-accent-cyan) var(--kd-glow-strength), transparent);
+}
+
+.tickerAmount {
+  font-family: var(--kd-font-display);
+  font-size: 18px;
+  color: var(--kd-accent-yellow);
+}
+
+.handLabel {
+  margin: 0 0 var(--kd-space-2);
+  font-size: 12px;
+  color: var(--kd-text-muted);
+}
+
+.bidRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kd-space-2);
+  margin-bottom: var(--kd-space-3);
+}
+
+.bidCard {
+  width: 90px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.bidCard:focus-visible {
+  outline: 2px solid var(--kd-accent-cyan);
+  outline-offset: 2px;
+  border-radius: var(--kd-radius-sm);
+}
+
+.bidCardDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sellerActions {
+  display: flex;
+  gap: var(--kd-space-3);
+}
