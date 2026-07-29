@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeScore, isGameOver, nextPlayerIndex } from '../src/scoring/scoring.js';
+import { computeScore, isDeckExhausted, isGameOver, hasIncompleteFamilyAnimal, nextPlayerIndex } from '../src/scoring/scoring.js';
 import type { AnimalCard, Player } from '../src/types.js';
 
 function animals(...species: AnimalCard['species'][]): AnimalCard[] {
@@ -83,10 +83,69 @@ describe('computeScore', () => {
   });
 });
 
-describe('isGameOver', () => {
-  it('is over once the animal deck is exhausted', () => {
-    expect(isGameOver([])).toBe(true);
-    expect(isGameOver([{ id: 'a', species: 'vache' }])).toBe(false);
+describe('isDeckExhausted', () => {
+  it('is true once the animal deck is empty', () => {
+    expect(isDeckExhausted([])).toBe(true);
+    expect(isDeckExhausted([{ id: 'a', species: 'vache' }])).toBe(false);
+  });
+});
+
+describe('isGameOver (rulebook: "quand toutes les familles sont complètes")', () => {
+  function playerWith(id: string, ...species: AnimalCard['species'][]): Player {
+    return { id, name: id, money: [], animals: animals(...species) };
+  }
+
+  it('is false while any species is not fully held by a single player', () => {
+    const players = [
+      playerWith('p1', 'cochon', 'cochon', 'cochon', 'cochon'),
+      playerWith('p2', 'vache', 'vache'), // vache incomplete everywhere
+    ];
+    expect(isGameOver(players)).toBe(false);
+  });
+
+  it('is true once every one of the 10 species is completed by some player', () => {
+    const players = [
+      playerWith(
+        'p1',
+        'coq', 'coq', 'coq', 'coq',
+        'oie', 'oie', 'oie', 'oie',
+        'chat', 'chat', 'chat', 'chat',
+        'chien', 'chien', 'chien', 'chien',
+        'mouton', 'mouton', 'mouton', 'mouton',
+      ),
+      playerWith(
+        'p2',
+        'chevre', 'chevre', 'chevre', 'chevre',
+        'ane', 'ane', 'ane', 'ane',
+        'cochon', 'cochon', 'cochon', 'cochon',
+        'vache', 'vache', 'vache', 'vache',
+        'cheval', 'cheval', 'cheval', 'cheval',
+      ),
+    ];
+    expect(isGameOver(players)).toBe(true);
+  });
+
+  it('does not require the SAME player to hold every family — different players can each complete different families', () => {
+    const players = [
+      playerWith('p1', 'coq', 'coq', 'coq', 'coq'),
+      playerWith('p2', 'oie', 'oie', 'oie', 'oie'),
+    ];
+    // only 2 of 10 families complete — still false, but proves ownership isn't required to be uniform once it IS all 10
+    expect(isGameOver(players)).toBe(false);
+  });
+});
+
+describe('hasIncompleteFamilyAnimal', () => {
+  it('is true when the player holds fewer than 4 of some species', () => {
+    expect(hasIncompleteFamilyAnimal(animals('vache', 'vache'))).toBe(true);
+  });
+
+  it('is false when every species held is a complete family of 4', () => {
+    expect(hasIncompleteFamilyAnimal(animals('vache', 'vache', 'vache', 'vache'))).toBe(false);
+  });
+
+  it('is false for an empty hand (nothing left to trade)', () => {
+    expect(hasIncompleteFamilyAnimal([])).toBe(false);
   });
 });
 

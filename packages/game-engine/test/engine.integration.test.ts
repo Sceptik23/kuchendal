@@ -8,7 +8,7 @@ import {
   respondCounter,
 } from '../src/kuhhandel/kuhhandel.js';
 import { applyAuctionResult, applyKuhhandelResult } from '../src/engine/applyResults.js';
-import { computeScore, isGameOver, nextPlayerIndex } from '../src/scoring/scoring.js';
+import { computeScore, isDeckExhausted, nextPlayerIndex } from '../src/scoring/scoring.js';
 import type { AnimalCard, Player } from '../src/types.js';
 
 /**
@@ -34,7 +34,7 @@ describe('full scripted game — auction-only playthrough to GAME_OVER', () => {
     let activePlayerIndex = 0;
     let cardsResolved = 0;
 
-    while (!isGameOver(deck)) {
+    while (!isDeckExhausted(deck)) {
       const card = deck[0]!;
       deck = deck.slice(1);
 
