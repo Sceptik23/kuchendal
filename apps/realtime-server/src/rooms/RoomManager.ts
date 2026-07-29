@@ -1,6 +1,6 @@
 import { GameRoom } from "../room/GameRoom.js";
 import type { GamePersistenceAdapter } from "../persistence/types.js";
-import type { MoneyCard, RandomSource } from "@kuhhandel/game-engine";
+import type { MoneyBank, MoneyCard, RandomSource } from "@kuhhandel/game-engine";
 import type { NarratorStyle } from "@kuhhandel/narrator-engine";
 
 export type LobbyType = "public" | "private" | "password";
@@ -45,7 +45,10 @@ export class RoomManager {
   constructor(
     private readonly persistenceFactory?: () => GamePersistenceAdapter,
     private readonly rng: RandomSource = Math.random,
-    private readonly startingMoneyFactory?: () => MoneyCard[],
+    private readonly startingMoneyFactory?: (
+      bank: MoneyBank,
+      playerCount: number,
+    ) => { bank: MoneyBank; hands: MoneyCard[][] },
   ) {}
 
   createRoom(options: CreateRoomOptions): { code: string; room: GameRoom } {

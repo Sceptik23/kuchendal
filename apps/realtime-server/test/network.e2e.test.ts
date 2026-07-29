@@ -41,11 +41,15 @@ describe('scripted full game over WebSocket, no UI', () => {
     // Deep single-denomination bankroll: this test drives 40 fixed-amount
     // auctions to prove the WebSocket-driven game reaches GAME_OVER, not to
     // exercise exact-change bookkeeping (documented game-engine limitation).
-    const deepBankroll = () =>
-      Array.from({ length: 20 }, (_, i) => ({
-        id: `deep-${i}-${Math.random()}`,
-        value: 10 as const,
-      }));
+    const deepBankroll = (bank: import('@kuhhandel/game-engine').MoneyBank, playerCount: number) => ({
+      bank,
+      hands: Array.from({ length: playerCount }, (_, p) =>
+        Array.from({ length: 20 }, (_, i) => ({
+          id: `deep-${p}-${i}-${Math.random()}`,
+          value: 10 as const,
+        })),
+      ),
+    });
     createSocketServer(httpServer, new RoomManager(undefined, () => 0, deepBankroll));
     await new Promise<void>((resolve) => httpServer.listen(0, resolve));
     port = (httpServer.address() as AddressInfo).port;

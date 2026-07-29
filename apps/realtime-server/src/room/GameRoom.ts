@@ -2,7 +2,8 @@ import {
   MIN_PLAYERS,
   MAX_PLAYERS,
   createShuffledDeck,
-  createStartingMoney,
+  createMoneyBank,
+  dealStartingMoney,
   computeScore,
   isGameOver,
   nextPlayerIndex,
@@ -23,6 +24,7 @@ import type {
   AnimalCard,
   AuctionState,
   KuhhandelState,
+  MoneyBank,
   MoneyCard,
   Player,
   RandomSource,
@@ -99,10 +101,14 @@ export class GameRoom {
   private lastNarratorLeaderId: string | null = null;
   private finalDistinctions: DistinctionEntry[] = [];
   private rareEventsFeed: RareEventEntry[] = [];
+  private moneyBank: MoneyBank = createMoneyBank();
 
   constructor(
     private readonly rng: RandomSource = Math.random,
-    private readonly startingMoneyFactory: () => MoneyCard[] = createStartingMoney,
+    private readonly startingMoneyFactory: (
+      bank: MoneyBank,
+      playerCount: number,
+    ) => { bank: MoneyBank; hands: MoneyCard[][] } = dealStartingMoney,
     private readonly persistence: GamePersistenceAdapter = new NullPersistenceAdapter(),
     private readonly narratorStyle: NarratorStyle = 'sport',
     private readonly narratorProvider: NarratorProvider = new TemplateNarratorProvider(rng),
@@ -199,7 +205,9 @@ export class GameRoom {
       throw new Error(`At least ${MIN_PLAYERS} players are required to start.`);
     }
     this.deck = createShuffledDeck(this.rng);
-    this.players = this.players.map((p) => ({ ...p, money: this.startingMoneyFactory() }));
+    const { bank, hands } = this.startingMoneyFactory(this.moneyBank, this.players.length);
+    this.moneyBank = bank;
+    this.players = this.players.map((p, i) => ({ ...p, money: hands[i]! }));
     this.activePlayerIndex = 0;
     this.status = 'in_progress';
 

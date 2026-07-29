@@ -159,11 +159,15 @@ describe('GameRoom — full game to GAME_OVER', () => {
     // bids to prove the full turn/deck/scoring loop reaches GAME_OVER, not
     // to exercise exact-change bookkeeping (a documented Phase 1 limitation
     // of the underlying game-engine, cf. applyResults.ts).
-    const deepBankroll = () =>
-      Array.from({ length: 20 }, (_, i) => ({
-        id: `deep-${i}-${Math.random()}`,
-        value: 10 as const,
-      }));
+    const deepBankroll = (bank: import('@kuhhandel/game-engine').MoneyBank, playerCount: number) => ({
+      bank,
+      hands: Array.from({ length: playerCount }, (_, p) =>
+        Array.from({ length: 20 }, (_, i) => ({
+          id: `deep-${p}-${i}-${Math.random()}`,
+          value: 10 as const,
+        })),
+      ),
+    });
     const room = new GameRoom(() => 0, deepBankroll);
     const p1 = room.join('p1');
     room.join('p2');

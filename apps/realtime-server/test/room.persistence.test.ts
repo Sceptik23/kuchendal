@@ -93,8 +93,12 @@ describe("GameRoom — persistence side channel", () => {
 
   it("finishes the game with final scores and ranks once the deck is exhausted", async () => {
     const persistence = fakeAdapter();
-    const deepBankroll = () =>
-      Array.from({ length: 20 }, (_, i) => ({ id: `deep-${i}-${Math.random()}`, value: 10 as const }));
+    const deepBankroll = (bank: import('@kuhhandel/game-engine').MoneyBank, playerCount: number) => ({
+      bank,
+      hands: Array.from({ length: playerCount }, (_, p) =>
+        Array.from({ length: 20 }, (_, i) => ({ id: `deep-${p}-${i}-${Math.random()}`, value: 10 as const })),
+      ),
+    });
     const room = new GameRoom(() => 0, deepBankroll, persistence);
     const p1 = room.join("p1", "user-1");
     room.join("p2", "user-2");
