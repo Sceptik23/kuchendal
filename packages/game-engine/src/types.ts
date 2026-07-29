@@ -1,5 +1,6 @@
 import type { MoneyDenomination } from './config/money.config.js';
 import type { SpeciesKey } from './config/species.config.js';
+import type { MoneyBank } from './money/moneyBank.js';
 
 export interface AnimalCard {
   id: string;
@@ -19,11 +20,19 @@ export interface Player {
 }
 
 export type GamePhase =
-  'LOBBY' | 'TURN_START' | 'AUCTION_FLOW' | 'KUHHANDEL_FLOW' | 'SCORING' | 'GAME_OVER';
+  | 'LOBBY'
+  | 'TURN_START'
+  | 'AUCTION_FLOW'
+  | 'KUHHANDEL_FLOW'
+  | 'FORCED_KUHHANDEL'
+  | 'SCORING'
+  | 'GAME_OVER';
 
 export interface GameState {
   phase: GamePhase;
   players: Player[];
   deck: AnimalCard[];
   activePlayerIndex: number;
+  moneyBank: MoneyBank;
+  donkeyRevealCount: number;
 }
