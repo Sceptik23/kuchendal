@@ -15,7 +15,8 @@
     "@kuhhandel/distinctions-engine": "workspace:*",
     "@kuhhandel/game-engine": "workspace:*",
     "@kuhhandel/narrator-engine": "workspace:*",
-    "@kuhhandel/rare-events-engine": "workspace:*"
+    "@kuhhandel/rare-events-engine": "workspace:*",
+    "@kuhhandel/shared-data": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
