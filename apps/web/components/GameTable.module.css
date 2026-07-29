@@ -291,6 +291,195 @@
   color: var(--kd-text);
 }
 
+/* Fin de partie (finished branch) */
+
+.finishedShell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: var(--kd-space-6) var(--kd-space-5);
+  box-sizing: border-box;
+  color: var(--kd-text);
+  font-family: var(--kd-font-body);
+}
+
+@keyframes kd-confetti-fall {
+  from {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(600px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.confettiField {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confettiPiece {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--kd-confetti-accent);
+  border-radius: 2px;
+  animation-name: kd-confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.confettiRound {
+  border-radius: 50%;
+}
+
+.finishedHeader {
+  position: relative;
+  text-align: center;
+  margin-bottom: var(--kd-space-6);
+}
+
+.finishedEyebrow {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kd-text-muted);
+  font-weight: 700;
+}
+
+.finishedWinner {
+  font-family: var(--kd-font-display);
+  font-size: 44px;
+  margin-top: var(--kd-space-1);
+  background: linear-gradient(90deg, var(--kd-accent-green), var(--kd-accent-yellow));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.finishedGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--kd-space-6);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.finishedSectionLabel {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kd-text-muted);
+  font-weight: 700;
+  margin-bottom: var(--kd-space-4);
+}
+
+.rankingCard {
+  background: var(--kd-surface);
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-lg);
+  padding: var(--kd-space-5);
+}
+
+.rankingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rankingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--kd-space-3);
+  padding: var(--kd-space-2) 0;
+  border-bottom: 1px solid var(--kd-border);
+}
+
+.rankingRow:last-child {
+  border-bottom: none;
+}
+
+.rankingNumeral {
+  font-family: var(--kd-font-display);
+  font-size: 18px;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.rankingName {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.rankingScore {
+  font-family: var(--kd-font-display);
+  font-size: 14px;
+  color: var(--kd-accent-yellow);
+}
+
+.hallSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.hallGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--kd-space-3);
+}
+
+.hallCard {
+  background: var(--kd-surface);
+  border: 2px solid var(--kd-hall-accent);
+  border-radius: var(--kd-radius-md);
+  padding: var(--kd-space-3);
+}
+
+.hallCardTitle {
+  font-family: var(--kd-font-display);
+  font-size: 12px;
+  color: var(--kd-hall-accent);
+  margin-bottom: var(--kd-space-1);
+}
+
+.hallCardName {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hallCardDetail {
+  font-size: 11px;
+  color: var(--kd-text-muted);
+  margin-top: 2px;
+}
+
+.finishedActions {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: var(--kd-space-7);
+}
+
+@media (max-width: 768px) {
+  .finishedGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hallGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .finishedWinner {
+    font-size: 32px;
+  }
+}
+
 @media (max-width: 768px) {
   .table {
     padding: var(--kd-space-4) var(--kd-space-4) var(--kd-space-2);

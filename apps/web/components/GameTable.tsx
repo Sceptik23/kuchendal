@@ -124,26 +124,75 @@ function HallOfFameShame({
 }) {
   if (distinctions.length === 0) return null;
   return (
-    <div>
-      <h3>Hall of Shame / Hall of Fame</h3>
-      <ul>
-        {distinctions.map((entry) => {
+    <div className={styles.hallSection}>
+      <div className={styles.finishedSectionLabel}>Hall of Shame &amp; Fame</div>
+      <div className={styles.hallGrid}>
+        {distinctions.map((entry, i) => {
           const label = DISTINCTION_LABELS[entry.key];
           const player = players.find((p) => p.id === entry.playerId);
+          const color = OPPONENT_ACCENTS[i % OPPONENT_ACCENTS.length];
           return (
-            <li key={entry.key}>
-              <strong>{label.title}</strong> — {player?.name ?? "?"} ({label.description})
-            </li>
+            <div
+              key={entry.key}
+              className={styles.hallCard}
+              style={{ "--kd-hall-accent": color } as CSSProperties}
+            >
+              <div className={styles.hallCardTitle}>{label.title}</div>
+              <div className={styles.hallCardName}>{player?.name ?? "?"}</div>
+              <div className={styles.hallCardDetail}>{label.description}</div>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
+}
+
+/** 24 confetti pieces cycling through the 5-token accent rotation, matching
+ * the design handoff's `confetti-fall` technique (not a glow effect, so it
+ * references `--kd-accent-*` directly rather than the glow-token machinery). */
+const CONFETTI_PIECES = Array.from({ length: 24 }, (_, i) => ({
+  key: i,
+  left: `${(i * 4.3) % 100}%`,
+  accent: OPPONENT_ACCENTS[i % OPPONENT_ACCENTS.length],
+  round: i % 2 === 0,
+  duration: `${3 + (i % 4)}s`,
+  delay: `${i * 0.15}s`,
+}));
+
+function ConfettiField() {
+  return (
+    <div className={styles.confettiField} aria-hidden="true">
+      {CONFETTI_PIECES.map((c) => (
+        <span
+          key={c.key}
+          className={[styles.confettiPiece, c.round ? styles.confettiRound : ""].join(" ")}
+          style={
+            {
+              left: c.left,
+              "--kd-confetti-accent": c.accent,
+              animationDuration: c.duration,
+              animationDelay: c.delay,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Rank 1/2/3 map to the podium colors used across the app; rank 4+ falls
+ * back to the subtlest text tone. */
+const RANK_COLORS = ["var(--kd-accent-yellow)", "var(--kd-text-muted)", "var(--kd-accent-orange)"];
+
+function rankColor(rank: number): string {
+  return RANK_COLORS[rank - 1] ?? "var(--kd-text-subtle)";
 }
 
 export function GameTable() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
+  const leave = useGameStore((s) => s.leave);
   if (!state || !playerId) return null;
 
   const isMyTurn = state.activePlayerId === playerId;
@@ -151,19 +200,47 @@ export function GameTable() {
   const currentPlayer = state.players.find((p) => p.id === playerId);
 
   if (state.status === "finished") {
+    const ranking = [...state.players].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const winner = ranking[0];
     return (
-      <div>
-        <h2>Partie terminée</h2>
-        <ul>
-          {[...state.players]
-            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-            .map((p) => (
-              <li key={p.id}>
-                {p.name} — {p.score} points
-              </li>
-            ))}
-        </ul>
-        <HallOfFameShame distinctions={state.distinctions} players={state.players} />
+      <div className={styles.finishedShell}>
+        <ConfettiField />
+        <div className={styles.finishedHeader}>
+          <div className={styles.finishedEyebrow}>Partie terminée</div>
+          {winner && (
+            <div className={styles.finishedWinner}>{winner.name} rafle tout !</div>
+          )}
+        </div>
+
+        <div className={styles.finishedGrid}>
+          <div className={styles.rankingCard}>
+            <div className={styles.finishedSectionLabel}>Classement final</div>
+            <ul className={styles.rankingList}>
+              {ranking.map((p, i) => {
+                const rank = i + 1;
+                const color = rankColor(rank);
+                return (
+                  <li key={p.id} className={styles.rankingRow}>
+                    <span className={styles.rankingNumeral} style={{ color }}>
+                      {rank}
+                    </span>
+                    <PlayerAvatarBadge name={p.name} size={40} />
+                    <span className={styles.rankingName}>{p.name}</span>
+                    <span className={styles.rankingScore}>{p.score ?? 0} pts</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <HallOfFameShame distinctions={state.distinctions} players={state.players} />
+        </div>
+
+        <div className={styles.finishedActions}>
+          <Button variant="primary" onClick={leave}>
+            Retour au hub
+          </Button>
+        </div>
       </div>
     );
   }

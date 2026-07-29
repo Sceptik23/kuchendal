@@ -24,6 +24,9 @@ interface GameStore {
   join: (code: string, name: string, accessToken?: string, password?: string) => Promise<void>;
   listPublicRooms: () => Promise<PublicRoomListing[]>;
   clearError: () => void;
+  /** Local-only reset back to the Hub — there's no server-side "leave"
+   * concept to notify (mirrors the `lobby:kicked` handler's `set(...)`). */
+  leave: () => void;
 }
 
 export const useGameStore = create<GameStore>((set) => {
@@ -87,5 +90,7 @@ export const useGameStore = create<GameStore>((set) => {
     listPublicRooms: () => new Promise((resolve) => socket.emit("lobby:list", resolve)),
 
     clearError: () => set({ error: null }),
+
+    leave: () => set({ roomCode: null, playerId: null, state: null }),
   };
 });
