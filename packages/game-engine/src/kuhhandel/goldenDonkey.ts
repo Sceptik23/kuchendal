@@ -19,7 +19,7 @@ export function distributeGoldenDonkeyBonus(
   donkeyRevealCount: number,
 ): { bank: MoneyBank; players: Player[] } {
   const index = Math.min(donkeyRevealCount, DONKEY_BONUS_SEQUENCE.length - 1);
-  const amount = DONKEY_BONUS_SEQUENCE[index];
+  const amount = DONKEY_BONUS_SEQUENCE[index]!;
 
   let currentBank = bank;
   const updatedPlayers: Player[] = [];
