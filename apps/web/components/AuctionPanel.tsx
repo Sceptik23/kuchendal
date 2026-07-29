@@ -3,6 +3,7 @@
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { Button, PlayingCard } from "@kuhhandel/ui";
+import { SPECIES_LABEL } from "../lib/species";
 import styles from "./AuctionPanel.module.css";
 
 export function AuctionPanel() {
@@ -19,7 +20,7 @@ export function AuctionPanel() {
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.title}>Enchère — {auction.card.species}</h3>
+      <h3 className={styles.title}>Enchère — {SPECIES_LABEL[auction.card.species]}</h3>
       <p className={styles.ticker}>
         Meilleure offre :{" "}
         {auction.highestBid ? (
@@ -27,7 +28,8 @@ export function AuctionPanel() {
         ) : (
           "aucune"
         )}
-        {auction.highestBid && ` (${auction.highestBid.playerId})`}
+        {auction.highestBid &&
+          ` (${state!.players.find((p) => p.id === auction.highestBid!.playerId)?.name ?? "?"})`}
       </p>
 
       {!isSeller && !awaitingSellerDecision && isActiveBidder && (

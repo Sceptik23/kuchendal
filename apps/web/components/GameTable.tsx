@@ -12,8 +12,8 @@ import {
   type DistinctionEntry,
   type GameStateView,
   type RareEventEntry,
-  type SpeciesKey,
 } from "@kuhhandel/shared-types";
+import { SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
 import styles from "./GameTable.module.css";
 
 /**
@@ -28,40 +28,6 @@ const OPPONENT_ACCENTS = [
   "var(--kd-accent-yellow)",
   "var(--kd-accent-orange)",
 ];
-
-/**
- * Species keys are lowercase ASCII (`cochon`, `chevre`, `ane`, ...) but the
- * extracted card artwork filenames use capitalized, accented French names
- * (`Cochon`, `Chèvre`, `Âne`, ...) — see `apps/web/app/style-guide/page.tsx`
- * for the source pattern. `boeuf` has no artwork (Phase 1 style guide),
- * so it maps to a slot that intentionally doesn't resolve to a real file,
- * letting `PlayingCard`'s placeholder fallback render instead.
- */
-const SPECIES_IMAGE_SLOT: Record<SpeciesKey, string> = {
-  cochon: "animal-Cochon",
-  oie: "animal-Oie",
-  mouton: "animal-Mouton",
-  chevre: "animal-Chèvre",
-  ane: "animal-Âne",
-  chien: "animal-Chien",
-  chat: "animal-Chat",
-  cheval: "animal-Cheval",
-  boeuf: "animal-missing",
-  vache: "animal-Vache",
-};
-
-const SPECIES_LABEL: Record<SpeciesKey, string> = {
-  cochon: "Cochon",
-  oie: "Oie",
-  mouton: "Mouton",
-  chevre: "Chèvre",
-  ane: "Âne",
-  chien: "Chien",
-  chat: "Chat",
-  cheval: "Cheval",
-  boeuf: "Bœuf",
-  vache: "Vache",
-};
 
 function familyCounts(animals: { species: string }[]): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -294,7 +260,7 @@ export function GameTable() {
                   </div>
                   <div className={styles.opponentAnimals}>
                     {Object.entries(familyCounts(p.animals))
-                      .map(([species, count]) => `${species} x${count}`)
+                      .map(([species, count]) => `${SPECIES_LABEL[species as keyof typeof SPECIES_LABEL] ?? species} x${count}`)
                       .join(", ") || "aucun animal"}
                   </div>
                 </div>
@@ -317,7 +283,6 @@ export function GameTable() {
               <AuctionPanel />
             </div>
           )}
-          {!state.auction && <AuctionPanel />}
           <KuhhandelPanel />
           {latestNarratorMessage && (
             <div className={styles.narratorSlot}>

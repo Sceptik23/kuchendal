@@ -71,3 +71,18 @@
   initial-value: 0deg;
   inherits: false;
 }
+
+/* Global accessibility guard: every animation/transition in the app is
+   purely decorative (holo swirl, ready-glow, turn-glow, rare-event
+   spotlight sweep, confetti, ...) — none is load-bearing for functionality,
+   so a single site-wide override is sufficient rather than patching each
+   call site individually. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

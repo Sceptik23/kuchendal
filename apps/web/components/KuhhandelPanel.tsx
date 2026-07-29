@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { Button, InfoStatusIcon, PlayingCard, Select } from "@kuhhandel/ui";
+import { SPECIES_LABEL } from "../lib/species";
 import gameTableStyles from "./GameTable.module.css";
 import styles from "./KuhhandelPanel.module.css";
 
@@ -101,7 +102,7 @@ export function KuhhandelInitiator() {
         >
           {[...new Set(currentTarget.sharedSpecies)].map((s) => (
             <option key={s} value={s}>
-              {s}
+              {SPECIES_LABEL[s]}
             </option>
           ))}
         </Select>
@@ -137,7 +138,7 @@ export function KuhhandelPanel() {
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.title}>Kuhhandel — {kuhhandel.species}</h3>
+      <h3 className={styles.title}>Kuhhandel — {SPECIES_LABEL[kuhhandel.species]}</h3>
 
       {isInitiator && kuhhandel.stage === "awaiting_initiator_offer" && (
         <MoneyPicker

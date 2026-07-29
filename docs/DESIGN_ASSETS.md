@@ -14,7 +14,7 @@
 - [x] Ton visuel de référence (3-5 exemples/inspirations : cartoon sans être
       enfantin, un peu d'humour/clin d'œil)
 - [ ] Logo / nom affiché ("Kuchendal")
-- [ ] Favicon
+- [x] Favicon (`apps/web/app/icon.svg`)
 
 ## 1. Cartes animaux (10 espèces × 4 exemplaires)
 Pour chaque espèce ci-dessous : une illustration recto (face visible) et
@@ -76,11 +76,12 @@ non stylé) :
 - [x] Table de jeu (vue mobile, liste verticale + zone perso fixe — layout
       responsive géré par les mêmes composants/CSS, pas un écran distinct)
 - [x] Résolution d'enchère (overlay historique + décision vendeur — pas de
-      "bid history" persistante, cf. §gap-report ; l'offre la plus haute et
-      la décision vendeur sont stylées)
+      "bid history" persistante, cf. le message du commit `d78aba2` ; l'offre
+      la plus haute et la décision vendeur sont stylées)
 - [x] Résolution de Kuhhandel (zone de mise secrète ; pas de compte à
-      rebours/reveal timé, cf. gap report — la résolution est instantanée
-      côté serveur, mais le plateau d'offre secrète est stylé)
+      rebours/reveal timé — la résolution est instantanée côté serveur (voir
+      le message du commit `d78aba2`), mais le plateau d'offre secrète est
+      stylé)
 - [x] Fin de partie / Hall of Shame-Fame
 - [x] Profil public (stats, badges, titres, historique)
 - [x] Classements
