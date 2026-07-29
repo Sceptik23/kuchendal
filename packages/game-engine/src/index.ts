@@ -10,5 +10,6 @@ export * from "./setup/createDeck.js";
 export * from "./setup/createStartingMoney.js";
 export * from "./auction/auction.js";
 export * from "./kuhhandel/kuhhandel.js";
+export * from "./kuhhandel/goldenDonkey.js";
 export * from "./scoring/scoring.js";
 export * from "./engine/applyResults.js";
