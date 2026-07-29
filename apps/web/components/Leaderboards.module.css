@@ -48,7 +48,7 @@
 }
 
 .scopeTabActive {
-  background: oklch(28% 0.05 340);
+  background: color-mix(in oklch, var(--kd-accent-pink) 20%, var(--kd-surface));
   border-color: var(--kd-accent-pink);
   color: var(--kd-text);
 }
@@ -67,7 +67,7 @@
   align-items: center;
   gap: 16px;
   padding: 14px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--kd-border);
 }
 
 .entry:last-child {
@@ -110,7 +110,7 @@
 }
 
 .entryCurrentUser {
-  background: rgba(112, 44, 132, 0.15);
+  background: color-mix(in oklch, var(--kd-accent-pink) 15%, transparent);
   border-radius: 8px;
   padding-left: 16px;
   padding-right: 16px;
