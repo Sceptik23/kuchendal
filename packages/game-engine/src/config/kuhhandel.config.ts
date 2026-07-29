@@ -10,5 +10,3 @@
  *   documentée, plutôt que de bloquer indéfiniment la partie).
  */
 export const KUHHANDEL_TIE_BREAK_MAX_ROUNDS = 2;
-
-export type KuhhandelTieBreakResolution = 'initiator_wins' | 'reoffer';
