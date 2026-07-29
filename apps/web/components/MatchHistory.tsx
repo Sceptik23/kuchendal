@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import styles from "./Profile.module.css";
 
 interface HistoryRow {
   final_score: number | null;
@@ -33,18 +34,27 @@ export function MatchHistory({ userId }: { userId: string }) {
     };
   }, [userId]);
 
-  if (rows === null) return <p>Chargement de l'historique…</p>;
-  if (rows.length === 0) return <p>Aucune partie jouée pour l'instant.</p>;
+  if (rows === null) return <p className={styles.loading}>Chargement de l'historique…</p>;
+  if (rows.length === 0) return <p className={styles.emptyState}>Aucune partie jouée pour l'instant.</p>;
 
   return (
-    <ul>
-      {rows.map((row, i) => (
-        <li key={row.games?.id ?? i}>
-          {row.games?.status === "finished"
-            ? `Terminée — score ${row.final_score ?? "?"}, rang ${row.final_rank ?? "?"}`
-            : `En cours (${row.games?.status})`}
-        </li>
-      ))}
+    <ul className={styles.matchList}>
+      {rows.map((row, i) => {
+        const finished = row.games?.status === "finished";
+        return (
+          <li
+            key={row.games?.id ?? i}
+            className={`${styles.matchRow} ${finished ? styles.matchRowFinished : styles.matchRowOngoing}`}
+          >
+            <span className={styles.matchResult}>{finished ? "Terminée" : "En cours"}</span>
+            <span className={styles.matchDetail}>
+              {finished
+                ? `Score ${row.final_score ?? "?"} · rang ${row.final_rank ?? "?"}`
+                : `${row.games?.status ?? ""}`}
+            </span>
+          </li>
+        );
+      })}
     </ul>
   );
 }
