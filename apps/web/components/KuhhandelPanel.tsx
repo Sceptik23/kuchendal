@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
-import { Button, Select } from "@kuhhandel/ui";
-import styles from "./GameTable.module.css";
+import { Button, InfoStatusIcon, PlayingCard, Select } from "@kuhhandel/ui";
+import gameTableStyles from "./GameTable.module.css";
+import styles from "./KuhhandelPanel.module.css";
 
 function useOwnMoney() {
   const state = useGameStore((s) => s.state);
@@ -27,22 +28,34 @@ function MoneyPicker({
   }
 
   return (
-    <div>
-      <ul>
-        {money.map((card) => (
-          <li key={card.id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={selected.includes(card.id)}
-                onChange={() => toggle(card.id)}
+    <div className={styles.picker}>
+      <div className={styles.pickerRow}>
+        {money.map((card) => {
+          const isSelected = selected.includes(card.id);
+          return (
+            <button
+              key={card.id}
+              type="button"
+              className={[styles.moneyToggle, isSelected ? styles.selected : ""]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={isSelected}
+              onClick={() => toggle(card.id)}
+            >
+              <PlayingCard
+                variant="money"
+                label={`Billet ${card.value}`}
+                value={card.value}
+                imageSlot={`bill-${card.value}`}
+                accentColor="var(--kd-accent-pink)"
               />
-              {card.value}
-            </label>
-          </li>
-        ))}
-      </ul>
-      <button onClick={() => onSubmit(selected)}>{label}</button>
+            </button>
+          );
+        })}
+      </div>
+      <Button variant="primary" onClick={() => onSubmit(selected)}>
+        {label}
+      </Button>
     </div>
   );
 }
@@ -72,9 +85,9 @@ export function KuhhandelInitiator() {
   const currentTarget = eligibleTargets.find((t) => t.player.id === targetId) ?? eligibleTargets[0]!;
 
   return (
-    <div className={styles.kuhhandelInitiator}>
-      <h3 className={styles.kuhhandelInitiatorTitle}>Lancer un Kuhhandel</h3>
-      <div className={styles.kuhhandelInitiatorFields}>
+    <div className={gameTableStyles.kuhhandelInitiator}>
+      <h3 className={gameTableStyles.kuhhandelInitiatorTitle}>Lancer un Kuhhandel</h3>
+      <div className={gameTableStyles.kuhhandelInitiatorFields}>
         <Select value={currentTarget.player.id} onChange={(e) => setTargetId(e.target.value)}>
           {eligibleTargets.map((t) => (
             <option key={t.player.id} value={t.player.id}>
@@ -117,9 +130,14 @@ export function KuhhandelPanel() {
   const isInitiator = kuhhandel.initiatorId === playerId;
   const isTarget = kuhhandel.targetId === playerId;
 
+  const initiatorOfferTooltip =
+    "Ton offre reste confidentielle jusqu'à la résolution — l'adversaire ne peut pas la voir.";
+  const targetOfferTooltip =
+    "Le montant exact de l'offre de l'adversaire reste inconnu tant que tu n'as pas accepté ou fait une contre-offre.";
+
   return (
-    <div>
-      <h3>Kuhhandel — {kuhhandel.species}</h3>
+    <div className={styles.panel}>
+      <h3 className={styles.title}>Kuhhandel — {kuhhandel.species}</h3>
 
       {isInitiator && kuhhandel.stage === "awaiting_initiator_offer" && (
         <MoneyPicker
@@ -131,17 +149,44 @@ export function KuhhandelPanel() {
       )}
 
       {isInitiator && kuhhandel.stage === "awaiting_response" && (
-        <p title="Ton offre reste confidentielle jusqu'à la résolution — l'adversaire ne peut pas la voir.">
-          🔒 Offre envoyée (confidentielle), en attente de la réponse de l'adversaire…
-        </p>
+        <div className={styles.tray}>
+          <p className={styles.trayLabelInitiator}>Ton offre secrète</p>
+          {kuhhandel.initiatorOffer && (
+            <div className={styles.trayCards}>
+              {kuhhandel.initiatorOffer.map((card) => (
+                <div key={card.id} className={styles.trayCard}>
+                  <PlayingCard
+                    variant="money"
+                    label={`Billet ${card.value}`}
+                    value={card.value}
+                    imageSlot={`bill-${card.value}`}
+                    accentColor="var(--kd-accent-green)"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          <p className={styles.statusLine}>
+            <InfoStatusIcon status="partial" label={initiatorOfferTooltip} />
+            <span>Offre envoyée (confidentielle), en attente de la réponse de l'adversaire…</span>
+          </p>
+        </div>
       )}
 
       {isTarget && kuhhandel.stage === "awaiting_response" && (
-        <div>
-          <p title="Le montant exact de l'offre de l'adversaire reste inconnu tant que tu n'as pas accepté ou fait une contre-offre.">
-            🔒 Offre secrète reçue — montant inconnu tant que la résolution n'a pas eu lieu.
-          </p>
-          <button onClick={() => getSocket().emit("kuhhandel:accept")}>Accepter</button>
+        <div className={styles.responseActions}>
+          <div className={styles.tray}>
+            <p className={styles.trayLabelTarget}>Offre secrète reçue</p>
+            <p className={styles.statusLine}>
+              <InfoStatusIcon status="partial" label={targetOfferTooltip} />
+              <span>Montant inconnu tant que la résolution n'a pas eu lieu.</span>
+            </p>
+          </div>
+          <div className={styles.acceptRow}>
+            <Button variant="primary" onClick={() => getSocket().emit("kuhhandel:accept")}>
+              Accepter
+            </Button>
+          </div>
           <MoneyPicker
             label="Contre-offrir"
             onSubmit={(cardIds) =>
