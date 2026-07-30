@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GamePhase, Player } from "@kuhhandel/game-engine";
+import { canInitiateKuhhandel, type GamePhase, type Player } from "@kuhhandel/game-engine";
 import { GameRoom } from "../src/room/GameRoom.js";
 
 /** Narrow view into GameRoom's private state, only for FORCED_KUHHANDEL setup below. */
@@ -74,7 +74,49 @@ describe("GameRoom — heuristic bot autoplay (08_AI.md)", () => {
     while (view.status === "in_progress") {
       guard += 1;
       if (guard > 500) throw new Error("Game did not converge — likely an infinite bot loop.");
-      if (view.activePlayerId === p1) {
+      if (
+        view.kuhhandel !== null &&
+        view.kuhhandel.initiatorId === p1 &&
+        view.kuhhandel.stage === "awaiting_initiator_offer"
+      ) {
+        // The human host initiated a Kuhhandel during FORCED_KUHHANDEL (see
+        // below) and must submit the secret initiator offer: offer nothing,
+        // the simplest legal move, so the trade resolves and play continues.
+        room.submitOffer(p1, []);
+      } else if (view.kuhhandel !== null && view.kuhhandel.targetId === p1 && view.kuhhandel.stage === "awaiting_response") {
+        // A bot initiated a Kuhhandel trade against the human host: always
+        // accept so the game keeps moving forward (this test only cares
+        // that a full bot-driven game converges, not human trade strategy).
+        room.respondAccept(p1);
+      } else if (
+        view.auction !== null &&
+        view.auction.status === "bidding" &&
+        view.auction.activeBidders.includes(p1)
+      ) {
+        // A bot started an auction (as seller) and the human host is one of
+        // the active bidders: always pass so bidding closes and the bots'
+        // own auction/kuhhandel resolves without waiting on human input.
+        room.pass(p1);
+      } else if (view.activePlayerId === p1 && view.phase === "FORCED_KUHHANDEL") {
+        // The deck is empty and startAuction is illegal: the human host must
+        // initiate a Kuhhandel like a bot would in findAnyLegalKuhhandelPartner.
+        // Find any other player sharing a species with p1 and trade on it.
+        const self = view.players.find((p) => p.id === p1)!;
+        let started = false;
+        for (const animal of self.animals) {
+          const partner = view.players.find(
+            (p) => p.id !== p1 && canInitiateKuhhandel(self.animals, p.animals, animal.species),
+          );
+          if (partner) {
+            room.startKuhhandel(p1, partner.id, animal.species);
+            started = true;
+            break;
+          }
+        }
+        if (!started) {
+          throw new Error("No legal Kuhhandel partner found for the human host during FORCED_KUHHANDEL.");
+        }
+      } else if (view.activePlayerId === p1) {
         // The host is human: reveal a card and always pass so the bots
         // settle the auction amongst themselves, then sell if it resolves.
         room.startAuction(p1);
@@ -91,6 +133,7 @@ describe("GameRoom — heuristic bot autoplay (08_AI.md)", () => {
     }
 
     expect(view.status).toBe("finished");
+    expect(view.phase).toBe("GAME_OVER");
     expect(view.players.every((p) => typeof p.score === "number")).toBe(true);
   });
 
