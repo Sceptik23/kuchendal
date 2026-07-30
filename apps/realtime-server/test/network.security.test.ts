@@ -87,7 +87,7 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
     s1.emit('lobby:start');
     await waitForState(s1, (st) => st.status === 'in_progress');
 
-    // Deck order for rng=()=>0 starts with three "cochon" cards in a row:
+    // Deck order for rng=()=>0 starts with three "coq" cards in a row:
     // two quick auctions give p2 and p3 each one, making a Kuhhandel between
     // them legal on turn 3 (cf. room.test.ts for the derivation).
     s1.emit('turn:startAuction');
@@ -120,7 +120,7 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
     // the single state:update this action triggers.
     const p3ViewPromise = waitForState(s3, (st) => st.kuhhandel?.initiatorId === p3);
     const targetSeesKuhhandel = waitForState(s2, (st) => st.kuhhandel !== null);
-    s3.emit('turn:startKuhhandel', { targetId: p2, species: 'cochon' });
+    s3.emit('turn:startKuhhandel', { targetId: p2, species: 'coq' });
     const [p3View] = await Promise.all([p3ViewPromise, targetSeesKuhhandel]);
     const offeredCardId = p3View.players.find((p) => p.id === p3)!.money![0]!.id;
 
