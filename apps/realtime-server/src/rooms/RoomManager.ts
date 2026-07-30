@@ -1,6 +1,6 @@
 import { GameRoom } from "../room/GameRoom.js";
 import type { GamePersistenceAdapter } from "../persistence/types.js";
-import type { MoneyBank, MoneyCard, RandomSource } from "@kuhhandel/game-engine";
+import type { AnimalCard, MoneyBank, MoneyCard, RandomSource } from "@kuhhandel/game-engine";
 import type { NarratorStyle } from "@kuhhandel/narrator-engine";
 
 export type LobbyType = "public" | "private" | "password";
@@ -49,6 +49,7 @@ export class RoomManager {
       bank: MoneyBank,
       playerCount: number,
     ) => { bank: MoneyBank; hands: MoneyCard[][] },
+    private readonly deckFactory?: () => AnimalCard[],
   ) {}
 
   createRoom(options: CreateRoomOptions): { code: string; room: GameRoom } {
@@ -60,6 +61,8 @@ export class RoomManager {
       this.startingMoneyFactory,
       this.persistenceFactory?.(),
       options.narratorStyle,
+      undefined,
+      this.deckFactory,
     );
 
     this.rooms.set(code, {
