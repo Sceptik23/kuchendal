@@ -457,6 +457,11 @@ export class GameRoom {
     this.deck = this.deck.slice(1);
 
     if (isGoldenDonkeyCard(card)) {
+      // Safe to run after the deck mutation above: distributeGoldenDonkeyBonus
+      // draws via drawFromBankWithFallback, which never throws even when the
+      // shared 55-card bank is completely exhausted (worst case at 6 players ×
+      // 4 donkey reveals). A throw here would leave the room permanently wedged
+      // with the card already removed from the deck and no auction started.
       const { bank, players } = distributeGoldenDonkeyBonus(this.moneyBank, this.players, this.donkeyRevealCount);
       this.moneyBank = bank;
       this.players = players;
