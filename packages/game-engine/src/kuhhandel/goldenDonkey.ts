@@ -13,6 +13,12 @@ export function isGoldenDonkeyCard(card: AnimalCard): boolean {
   return card.species === 'ane';
 }
 
+/**
+ * Pays every player the bonus for this reveal from the shared bank. Draws go
+ * through `drawFromBankWithFallback`, so this never throws even when the bank
+ * has been drained dry (6 players × 4 reveals on top of 6×7 starting cards can
+ * exceed the box's 55 cards); exhausted draws degrade to worthless 0 cards.
+ */
 export function distributeGoldenDonkeyBonus(
   bank: MoneyBank,
   players: Player[],

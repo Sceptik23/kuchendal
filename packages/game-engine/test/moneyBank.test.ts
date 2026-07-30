@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MONEY_DENOMINATIONS } from '../src/config/money.config.js';
 import {
   createMoneyBank,
   drawFromBank,
@@ -50,7 +51,7 @@ describe('drawFromBankWithFallback', () => {
     expect(next.counts[10]).toBe(18);
   });
 
-  it('never throws even if every denomination is exhausted', () => {
+  it('falls back to the largest remaining denomination when only 500s are left', () => {
     let bank = createMoneyBank();
     for (const denom of [0, 10, 50, 100, 200] as const) {
       bank = drawFromBank(bank, denom, bank.counts[denom]).bank;
@@ -60,5 +61,34 @@ describe('drawFromBankWithFallback', () => {
     const { cards } = drawFromBankWithFallback(bank, 0, 2);
     expect(cards).toHaveLength(2);
     expect(cards.every((c) => c.value === 500)).toBe(true);
+  });
+
+  it('never throws even if every denomination is exhausted', () => {
+    let bank = createMoneyBank();
+    for (const denom of MONEY_DENOMINATIONS) {
+      bank = drawFromBank(bank, denom, bank.counts[denom]).bank;
+    }
+    // The bank is now genuinely empty across all six denominations.
+    expect(Object.values(bank.counts).every((n) => n === 0)).toBe(true);
+
+    const { bank: next, cards } = drawFromBankWithFallback(bank, 500, 3);
+
+    expect(cards).toHaveLength(3);
+    expect(cards.every((c) => c.value === 0)).toBe(true); // minted worthless fallback
+    expect(new Set(cards.map((c) => c.id)).size).toBe(3); // ids still unique
+    expect(Object.values(next.counts).every((n) => n === 0)).toBe(true); // no real supply consumed
+    expect(next.nextId).toBe(bank.nextId + 3);
+  });
+
+  it('mints unique ids when it crosses from real supply into the empty fallback', () => {
+    let bank = createMoneyBank();
+    for (const denom of [0, 10, 50, 100, 200] as const) {
+      bank = drawFromBank(bank, denom, bank.counts[denom]).bank;
+    }
+    bank = drawFromBank(bank, 500, 4).bank; // exactly one 500 left
+
+    const { cards } = drawFromBankWithFallback(bank, 0, 3);
+    expect(cards.map((c) => c.value)).toEqual([500, 0, 0]);
+    expect(new Set(cards.map((c) => c.id)).size).toBe(3);
   });
 });

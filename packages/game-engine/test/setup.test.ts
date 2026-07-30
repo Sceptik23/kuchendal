@@ -31,22 +31,53 @@ describe('createShuffledDeck', () => {
 });
 
 describe('dealStartingMoney', () => {
-  it('gives each player the configured starting money hand (90 total, rulebook)', () => {
-    const bank = createMoneyBank();
-    const { hands } = dealStartingMoney(bank, 3);
+  it.each([3, 4, 5])(
+    'gives each of %i players the exact configured starting hand (90 total, rulebook)',
+    (playerCount) => {
+      const bank = createMoneyBank();
+      const { hands } = dealStartingMoney(bank, playerCount);
 
-    const expectedCount = Object.values(STARTING_MONEY).reduce((a, b) => a + b, 0);
-    expect(expectedCount).toBe(7); // 2×0 + 4×10 + 1×50
+      const expectedCount = Object.values(STARTING_MONEY).reduce((a, b) => a + b, 0);
+      expect(expectedCount).toBe(7); // 2×0 + 4×10 + 1×50
+      expect(hands).toHaveLength(playerCount);
 
-    for (const hand of hands) {
-      expect(hand).toHaveLength(expectedCount);
-      expect(hand.reduce((sum, c) => sum + c.value, 0)).toBe(90);
-      for (const denomination of MONEY_DENOMINATIONS) {
-        expect(hand.filter((card) => card.value === denomination)).toHaveLength(
-          STARTING_MONEY[denomination],
-        );
+      for (const hand of hands) {
+        expect(hand).toHaveLength(expectedCount);
+        expect(hand.reduce((sum, c) => sum + c.value, 0)).toBe(90);
+        for (const denomination of MONEY_DENOMINATIONS) {
+          expect(hand.filter((card) => card.value === denomination)).toHaveLength(
+            STARTING_MONEY[denomination],
+          );
+        }
       }
+    },
+  );
+
+  it('spreads the unavoidable 6-player shortfall instead of dumping it on one player', () => {
+    // 6 players need 12×"0" and 24×"10" but the box holds only 10 and 20, so
+    // some substitution is structurally unavoidable. Round-robin dealing must
+    // keep it fair: sequential dealing used to give the last player 450 (5×
+    // everyone else's 90).
+    const { hands } = dealStartingMoney(createMoneyBank(), 6);
+    const totals = hands.map((hand) => hand.reduce((sum, card) => sum + card.value, 0));
+
+    expect(hands).toHaveLength(6);
+    for (const hand of hands) {
+      expect(hand).toHaveLength(7); // everyone still gets 7 physical cards
     }
+
+    // No player is starved and nobody gets a runaway advantage.
+    expect(Math.min(...totals)).toBeGreaterThanOrEqual(90);
+    expect(Math.max(...totals)).toBeLessThanOrEqual(3 * 90);
+    expect(Math.max(...totals) / Math.min(...totals)).toBeLessThan(2);
+
+    // The shortfall is a redistribution, not inflation: the total dealt is the
+    // same as the old sequential deal handed out.
+    expect(totals.reduce((a, b) => a + b, 0)).toBe(900);
+  });
+
+  it('never throws at the maximum supported player count', () => {
+    expect(() => dealStartingMoney(createMoneyBank(), 6)).not.toThrow();
   });
 
   it('gives each player independent card instances drawn from a shrinking bank', () => {
