@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { canInitiateKuhhandel, type GamePhase, type Player } from "@kuhhandel/game-engine";
 import { GameRoom } from "../src/room/GameRoom.js";
+
+/** Narrow view into GameRoom's private state, only for FORCED_KUHHANDEL setup below. */
+type GameRoomInternals = {
+  phase: GamePhase;
+  deck: unknown[];
+  players: Player[];
+  activePlayerIndex: number;
+  auction: unknown;
+  kuhhandel: unknown;
+  runBotLoop: () => void;
+};
 
 describe("GameRoom — bot slots", () => {
   it("lets the host add a bot player in the lobby", () => {
@@ -62,7 +74,49 @@ describe("GameRoom — heuristic bot autoplay (08_AI.md)", () => {
     while (view.status === "in_progress") {
       guard += 1;
       if (guard > 500) throw new Error("Game did not converge — likely an infinite bot loop.");
-      if (view.activePlayerId === p1) {
+      if (
+        view.kuhhandel !== null &&
+        view.kuhhandel.initiatorId === p1 &&
+        view.kuhhandel.stage === "awaiting_initiator_offer"
+      ) {
+        // The human host initiated a Kuhhandel during FORCED_KUHHANDEL (see
+        // below) and must submit the secret initiator offer: offer nothing,
+        // the simplest legal move, so the trade resolves and play continues.
+        room.submitOffer(p1, []);
+      } else if (view.kuhhandel !== null && view.kuhhandel.targetId === p1 && view.kuhhandel.stage === "awaiting_response") {
+        // A bot initiated a Kuhhandel trade against the human host: always
+        // accept so the game keeps moving forward (this test only cares
+        // that a full bot-driven game converges, not human trade strategy).
+        room.respondAccept(p1);
+      } else if (
+        view.auction !== null &&
+        view.auction.status === "bidding" &&
+        view.auction.activeBidders.includes(p1)
+      ) {
+        // A bot started an auction (as seller) and the human host is one of
+        // the active bidders: always pass so bidding closes and the bots'
+        // own auction/kuhhandel resolves without waiting on human input.
+        room.pass(p1);
+      } else if (view.activePlayerId === p1 && view.phase === "FORCED_KUHHANDEL") {
+        // The deck is empty and startAuction is illegal: the human host must
+        // initiate a Kuhhandel like a bot would in findAnyLegalKuhhandelPartner.
+        // Find any other player sharing a species with p1 and trade on it.
+        const self = view.players.find((p) => p.id === p1)!;
+        let started = false;
+        for (const animal of self.animals) {
+          const partner = view.players.find(
+            (p) => p.id !== p1 && canInitiateKuhhandel(self.animals, p.animals, animal.species),
+          );
+          if (partner) {
+            room.startKuhhandel(p1, partner.id, animal.species);
+            started = true;
+            break;
+          }
+        }
+        if (!started) {
+          throw new Error("No legal Kuhhandel partner found for the human host during FORCED_KUHHANDEL.");
+        }
+      } else if (view.activePlayerId === p1) {
         // The host is human: reveal a card and always pass so the bots
         // settle the auction amongst themselves, then sell if it resolves.
         room.startAuction(p1);
@@ -79,6 +133,7 @@ describe("GameRoom — heuristic bot autoplay (08_AI.md)", () => {
     }
 
     expect(view.status).toBe("finished");
+    expect(view.phase).toBe("GAME_OVER");
     expect(view.players.every((p) => typeof p.score === "number")).toBe(true);
   });
 
@@ -115,5 +170,56 @@ describe("GameRoom — heuristic bot autoplay (08_AI.md)", () => {
     const view = room.getViewFor(p1);
     expect(view.activePlayerId).toBe(botId);
     expect(view.auction !== null || view.kuhhandel !== null).toBe(true);
+  });
+});
+
+/**
+ * Regression for a Critical bug found in review of Task 14: once the deck
+ * is empty, FORCED_KUHHANDEL makes startAuction throw ("Kuhhandel is now
+ * mandatory"). decideKuhhandelInitiation (packages/bot-engine) was written
+ * for the NORMAL phase and returns null for any bot that doesn't hold a
+ * *duplicate* of some species — which is exactly what happens whenever a
+ * bot holds only a single card of an incomplete family, even though a
+ * legal Kuhhandel with another player unquestionably exists (the auto-pass
+ * loop in endTurn only leaves a bot as activePlayer during FORCED_KUHHANDEL
+ * if it holds an incomplete-family animal, which by definition some other
+ * player also holds a card of). Before the fix, runBotLoop's null branch
+ * unconditionally called startAuction and wedged the room permanently, with
+ * every subsequent human action re-throwing.
+ */
+describe("GameRoom — FORCED_KUHHANDEL bot fallback (regression)", () => {
+  it("a bot with only a single, non-duplicate incomplete-family animal starts a legal Kuhhandel instead of throwing", () => {
+    const room = new GameRoom(() => 0);
+    const p1 = room.join("p1");
+    room.join("p2");
+    const botId = room.addBot(p1);
+    room.start();
+
+    const internal = room as unknown as GameRoomInternals;
+    const botIndex = internal.players.findIndex((p) => p.id === botId);
+    const p1Index = internal.players.findIndex((p) => p.id === p1);
+
+    // Bot holds exactly one "coq" (not a duplicate, so
+    // decideKuhhandelInitiation's duplicateSpecies filter excludes it and
+    // returns null), while p1 also holds a "coq" — a legal Kuhhandel
+    // partner unquestionably exists.
+    internal.players = internal.players.map((p, i) => {
+      if (i === botIndex) return { ...p, animals: [{ id: "bot-coq", species: "coq" }] };
+      if (i === p1Index) return { ...p, animals: [{ id: "p1-coq", species: "coq" }] };
+      return p;
+    });
+    internal.deck = [];
+    internal.phase = "FORCED_KUHHANDEL";
+    internal.auction = null;
+    internal.kuhhandel = null;
+    internal.activePlayerIndex = botIndex;
+
+    expect(() => internal.runBotLoop()).not.toThrow();
+
+    const view = room.getViewFor(p1);
+    expect(view.kuhhandel).not.toBeNull();
+    expect(view.kuhhandel?.initiatorId).toBe(botId);
+    expect(view.kuhhandel?.targetId).toBe(p1);
+    expect(view.kuhhandel?.species).toBe("coq");
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { GameRoom } from "../src/room/GameRoom.js";
 import type { GamePersistenceAdapter } from "../src/persistence/types.js";
+import { DEEP_BANKROLL, groupedDeckFactory, playAuctionOnlyThenConsolidate } from "./helpers/playToGameOver.js";
 
 function fakeAdapter(): GamePersistenceAdapter & {
   saveCareerProgress: ReturnType<typeof vi.fn>;
@@ -25,26 +26,15 @@ async function flushMicrotasks() {
 describe("GameRoom — awards meta-progression to real accounts at game end", () => {
   it("calls saveCareerProgress once per player with a real userId, skipping guests", async () => {
     const persistence = fakeAdapter();
-    const deepBankroll = () =>
-      Array.from({ length: 20 }, (_, i) => ({ id: `deep-${i}-${Math.random()}`, value: 10 as const }));
-    const room = new GameRoom(() => 0, deepBankroll, persistence);
+    const room = new GameRoom(() => 0, DEEP_BANKROLL, persistence, undefined, undefined, groupedDeckFactory);
     const p1 = room.join("p1", "user-1");
-    room.join("p2", "user-2");
-    room.join("p3", null); // guest, no account
+    const p2 = room.join("p2", "user-2");
+    const p3 = room.join("p3", null); // guest, no account
 
     room.start();
     await flushMicrotasks();
 
-    let view = room.getViewFor(p1);
-    while (view.status === "in_progress") {
-      const activeId = view.activePlayerId!;
-      const others = view.players.map((p) => p.id).filter((id) => id !== activeId);
-      room.startAuction(activeId);
-      room.placeBid(others[0]!, 10);
-      room.pass(others[1]!);
-      room.sellerDecision(activeId, "sell");
-      view = room.getViewFor(p1);
-    }
+    playAuctionOnlyThenConsolidate(room, [p1, p2, p3]);
     await flushMicrotasks();
 
     expect(persistence.saveCareerProgress).toHaveBeenCalledTimes(2);

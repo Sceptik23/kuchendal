@@ -145,7 +145,7 @@ describe("decideKuhhandelOffer / decideKuhhandelResponse", () => {
   it("accepts when its own estimate of the species is low relative to its cash", () => {
     const target = player({ money: money(500, 500, 500) });
     const state = submitInitiatorOffer(
-      startKuhhandel("initiator", target.id, "cochon"),
+      startKuhhandel("initiator", target.id, "cochon", [{ id: "a-cochon", species: "cochon" }], target.animals),
       money(10),
     );
     const response = decideKuhhandelResponse(target, state, BOT_DIFFICULTY_PRESETS.normal, rng);
@@ -155,7 +155,7 @@ describe("decideKuhhandelOffer / decideKuhhandelResponse", () => {
   it("counters when the species estimate is high relative to its cash", () => {
     const target = player({ money: money(10) });
     const state = submitInitiatorOffer(
-      startKuhhandel("initiator", target.id, "vache"),
+      startKuhhandel("initiator", target.id, "vache", [{ id: "a-vache", species: "vache" }], target.animals),
       money(500),
     );
     const response = decideKuhhandelResponse(target, state, BOT_DIFFICULTY_PRESETS.normal, rng);

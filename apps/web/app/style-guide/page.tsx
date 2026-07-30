@@ -20,20 +20,18 @@ const ANIMAL_ACCENTS = [
 ];
 
 // Real species + values from packages/game-engine/src/config/species.config.ts
-// (not the design handoff's example numbers). "boeuf" has no artwork in the
-// handoff (it shipped an unused "animal-Poule" illustration instead) —
-// imageSlot: null deliberately exercises PlayingCard's placeholder fallback.
-const ANIMALS: Array<{ species: string; slot: string | null; label: string; value: number }> = [
-  { species: 'cochon', slot: 'animal-Cochon', label: 'Cochon', value: 100 },
-  { species: 'oie', slot: 'animal-Oie', label: 'Oie', value: 200 },
-  { species: 'mouton', slot: 'animal-Mouton', label: 'Mouton', value: 300 },
-  { species: 'chevre', slot: 'animal-Chèvre', label: 'Chèvre', value: 400 },
+// (not the design handoff's example numbers).
+const ANIMALS: Array<{ species: string; slot: string; label: string; value: number }> = [
+  { species: 'coq', slot: 'animal-Poule', label: 'Coq', value: 10 },
+  { species: 'oie', slot: 'animal-Oie', label: 'Oie', value: 40 },
+  { species: 'chat', slot: 'animal-Chat', label: 'Chat', value: 90 },
+  { species: 'chien', slot: 'animal-Chien', label: 'Chien', value: 160 },
+  { species: 'mouton', slot: 'animal-Mouton', label: 'Mouton', value: 250 },
+  { species: 'chevre', slot: 'animal-Chèvre', label: 'Chèvre', value: 350 },
   { species: 'ane', slot: 'animal-Âne', label: 'Âne', value: 500 },
-  { species: 'chien', slot: 'animal-Chien', label: 'Chien', value: 650 },
-  { species: 'chat', slot: 'animal-Chat', label: 'Chat', value: 800 },
+  { species: 'cochon', slot: 'animal-Cochon', label: 'Cochon', value: 650 },
+  { species: 'vache', slot: 'animal-Vache', label: 'Vache', value: 800 },
   { species: 'cheval', slot: 'animal-Cheval', label: 'Cheval', value: 1000 },
-  { species: 'boeuf', slot: null, label: 'Bœuf', value: 1200 },
-  { species: 'vache', slot: 'animal-Vache', label: 'Vache', value: 1500 },
 ];
 
 // Real denominations from packages/game-engine/src/config/money.config.ts
@@ -68,7 +66,7 @@ export default function StyleGuidePage() {
               variant="animal"
               label={a.label}
               value={a.value}
-              imageSlot={a.slot ?? 'animal-missing'}
+              imageSlot={a.slot}
               accentColor={ANIMAL_ACCENTS[i % ANIMAL_ACCENTS.length] as string}
             />
           ))}

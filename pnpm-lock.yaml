@@ -139,6 +139,10 @@ importers:
         version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
 
   packages/game-engine:
+    dependencies:
+      '@kuhhandel/shared-data':
+        specifier: workspace:*
+        version: link:../shared-data
     devDependencies:
       typescript:
         specifier: ^5.7.2
@@ -182,6 +186,15 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
 
+  packages/shared-data:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(supports-color@7.2.0)
+
   packages/shared-types:
     dependencies:
       '@kuhhandel/distinctions-engine':
@@ -196,6 +209,9 @@ importers:
       '@kuhhandel/rare-events-engine':
         specifier: workspace:*
         version: link:../rare-events-engine
+      '@kuhhandel/shared-data':
+        specifier: workspace:*
+        version: link:../shared-data
     devDependencies:
       typescript:
         specifier: ^5.7.2

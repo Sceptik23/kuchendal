@@ -1,5 +1,5 @@
 {
-  "name": "@kuhhandel/game-engine",
+  "name": "@kuhhandel/shared-data",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,9 +10,6 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@kuhhandel/shared-data": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
