@@ -300,10 +300,38 @@ export class GameRoom {
       const kuhhandel = decideKuhhandelInitiation(bot, others, this.botConfig(bot.id));
       if (kuhhandel) {
         this.startKuhhandel(bot.id, kuhhandel.targetId, kuhhandel.species);
+      } else if (this.phase === 'FORCED_KUHHANDEL') {
+        const forced = this.findAnyLegalKuhhandelPartner(bot, others);
+        this.startKuhhandel(bot.id, forced.targetId, forced.species);
       } else {
         this.startAuction(bot.id);
       }
     }
+  }
+
+  /**
+   * During FORCED_KUHHANDEL, startAuction is illegal (the deck is empty), so a bot
+   * whose heuristic decideKuhhandelInitiation returns null (it was tuned for the
+   * NORMAL phase, where "no good trade" can fall back to an auction) must still find
+   * SOME legal Kuhhandel to start. The auto-pass loop in endTurn only leaves a bot as
+   * activePlayer during FORCED_KUHHANDEL if that bot holds an incomplete family, which
+   * by definition means some other player holds at least one animal of that species —
+   * so a legal partner is guaranteed to exist.
+   */
+  private findAnyLegalKuhhandelPartner(
+    bot: Player,
+    others: Player[],
+  ): { targetId: string; species: SpeciesKey } {
+    for (const animal of bot.animals) {
+      for (const other of others) {
+        if (canInitiateKuhhandel(bot.animals, other.animals, animal.species)) {
+          return { targetId: other.id, species: animal.species };
+        }
+      }
+    }
+    throw new Error(
+      'Internal invariant violated: no legal Kuhhandel partner found during FORCED_KUHHANDEL.',
+    );
   }
 
   private get activePlayer(): Player {

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
+import type { GamePhase, Player } from "@kuhhandel/game-engine";
 import { GameRoom } from "../src/room/GameRoom.js";
+
+/** Narrow view into GameRoom's private state, only for FORCED_KUHHANDEL setup below. */
+type GameRoomInternals = {
+  phase: GamePhase;
+  deck: unknown[];
+  players: Player[];
+  activePlayerIndex: number;
+  auction: unknown;
+  kuhhandel: unknown;
+  runBotLoop: () => void;
+};
 
 describe("GameRoom — bot slots", () => {
   it("lets the host add a bot player in the lobby", () => {
@@ -115,5 +127,56 @@ describe("GameRoom — heuristic bot autoplay (08_AI.md)", () => {
     const view = room.getViewFor(p1);
     expect(view.activePlayerId).toBe(botId);
     expect(view.auction !== null || view.kuhhandel !== null).toBe(true);
+  });
+});
+
+/**
+ * Regression for a Critical bug found in review of Task 14: once the deck
+ * is empty, FORCED_KUHHANDEL makes startAuction throw ("Kuhhandel is now
+ * mandatory"). decideKuhhandelInitiation (packages/bot-engine) was written
+ * for the NORMAL phase and returns null for any bot that doesn't hold a
+ * *duplicate* of some species — which is exactly what happens whenever a
+ * bot holds only a single card of an incomplete family, even though a
+ * legal Kuhhandel with another player unquestionably exists (the auto-pass
+ * loop in endTurn only leaves a bot as activePlayer during FORCED_KUHHANDEL
+ * if it holds an incomplete-family animal, which by definition some other
+ * player also holds a card of). Before the fix, runBotLoop's null branch
+ * unconditionally called startAuction and wedged the room permanently, with
+ * every subsequent human action re-throwing.
+ */
+describe("GameRoom — FORCED_KUHHANDEL bot fallback (regression)", () => {
+  it("a bot with only a single, non-duplicate incomplete-family animal starts a legal Kuhhandel instead of throwing", () => {
+    const room = new GameRoom(() => 0);
+    const p1 = room.join("p1");
+    room.join("p2");
+    const botId = room.addBot(p1);
+    room.start();
+
+    const internal = room as unknown as GameRoomInternals;
+    const botIndex = internal.players.findIndex((p) => p.id === botId);
+    const p1Index = internal.players.findIndex((p) => p.id === p1);
+
+    // Bot holds exactly one "coq" (not a duplicate, so
+    // decideKuhhandelInitiation's duplicateSpecies filter excludes it and
+    // returns null), while p1 also holds a "coq" — a legal Kuhhandel
+    // partner unquestionably exists.
+    internal.players = internal.players.map((p, i) => {
+      if (i === botIndex) return { ...p, animals: [{ id: "bot-coq", species: "coq" }] };
+      if (i === p1Index) return { ...p, animals: [{ id: "p1-coq", species: "coq" }] };
+      return p;
+    });
+    internal.deck = [];
+    internal.phase = "FORCED_KUHHANDEL";
+    internal.auction = null;
+    internal.kuhhandel = null;
+    internal.activePlayerIndex = botIndex;
+
+    expect(() => internal.runBotLoop()).not.toThrow();
+
+    const view = room.getViewFor(p1);
+    expect(view.kuhhandel).not.toBeNull();
+    expect(view.kuhhandel?.initiatorId).toBe(botId);
+    expect(view.kuhhandel?.targetId).toBe(p1);
+    expect(view.kuhhandel?.species).toBe("coq");
   });
 });
