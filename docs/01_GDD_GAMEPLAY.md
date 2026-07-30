@@ -13,7 +13,8 @@
 ### 1.2 Cartes argent
 - Valeurs : 0, 10, 50, 100, 200, 500.
 - Les cartes "0" existent uniquement pour permettre de bluffer sur la composition de sa main (on peut montrer/poser une carte sans valeur).
-- Chaque joueur démarre avec une somme fixe répartie en plusieurs coupures (à définir, ex. équivalent démarrage classique du jeu physique).
+- Chaque joueur démarre avec **90 points** (2 cartes 0, 4 cartes 10, 1 carte 50), distribués depuis une **banque partagée de 55 cartes**.
+- Les cartes non distribuées à la mise en place restent dans la banque et peuvent être utilisées pour le change pendant la partie (quand un joueur manque de la coupure exacte pour une mise).
 
 ## 2. Mise en place
 - 4 à 6 joueurs (le moteur doit accepter un minimum de 3 pour les tests, mais l'UX cible 4-6).
@@ -45,25 +46,34 @@ Déroulement :
    - **Option B (Contrer)** : la cible refuse et compose à son tour une offre secrète (même principe, cartes cachées).
 4. Si contre-offre (option B) : les deux offres sont révélées simultanément.
    - Celui qui a misé le **montant le plus élevé** remporte la carte animal de l'autre.
-   - **Le gagnant garde tout l'argent misé par les deux joueurs** (règle centrale et contre-intuitive du jeu : l'argent misé par les deux parties reste dans le jeu, redistribué au vainqueur de l'enchère, en plus de la carte gagnée). Le perdant ne récupère pas sa mise.
+   - **Chaque joueur conserve l'argent qu'il a lui-même misé** — seul l'animal change de main ; aucun argent n'est créé ni détruit lors d'un marchandage (contrairement à une enchère, où l'argent du gagnant va effectivement au vendeur).
    - En cas d'égalité stricte entre les deux montants : une nouvelle offre secrète est redemandée aux deux joueurs (nouvelle mise, on ne réutilise pas les mêmes cartes) ; si l'égalité persiste plusieurs fois, une règle de dégagement doit être configurée (ex. l'initiateur l'emporte par défaut à la 2e égalité, ou aucun échange n'a lieu — à trancher explicitement en configuration `kuhhandel.config.ts`, car les éditions du jeu physique varient sur ce point).
 5. Un joueur ne peut pas refuser de participer à un Kuhhandel lancé contre lui s'il possède l'espèce concernée (le Kuhhandel est obligatoire une fois déclenché, seule la réponse — accepter ou contrer — est un choix).
 
-## 4. Fin de partie
-- La partie se termine quand la pioche d'animaux est épuisée (toutes les cartes ont été vendues aux enchères) — condition de fin standard à confirmer en configuration (variante possible : fin après un nombre de tours fixe).
-- Chaque joueur totalise la valeur de ses familles **complètes** uniquement.
-- Les animaux isolés (famille incomplète) ne rapportent rien ou une valeur symbolique minime.
-- Le joueur avec le score total le plus élevé gagne.
-- **Note de design** : l'argent restant en main ne compte généralement pas dans le score final — seules les familles complètes comptent. Ce point doit être un paramètre explicite et documenté dans le moteur, pas une supposition implicite.
+6. **Marchandage spécial** : si les joueurs A et B possèdent chacun **deux** cartes de la même famille, le marchandage porte sur les **deux cartes à la fois** (le gagnant remporte les deux d'un coup). Si l'un des deux n'en possède qu'une, le marchandage ne porte que sur une seule carte.
 
-## 5. Résumé des décisions de configuration à trancher avant l'implémentation
-Ces points varient légèrement selon les éditions du jeu physique et **doivent être figés dans un fichier de configuration versionné** avant de coder le moteur, afin d'éviter toute ambiguïté :
-- Barème de valeur par espèce.
-- Montant et répartition de la mise de départ.
-- Comportement exact en cas d'égalité lors d'un Kuhhandel.
+### 3.3 L'âne d'or
+Quand une carte "âne" est retournée pour être mise aux enchères, les enchères sont interrompues avant de commencer : chaque joueur (y compris le meneur) reçoit une carte argent supplémentaire — 50 la 1ère fois qu'un âne est retourné dans la partie, 100 la 2e, 200 la 3e, 500 la 4e (il y a exactement 4 ânes dans les 40 cartes animaux). L'âne est ensuite mis aux enchères normalement.
+
+## 4. Fin de partie
+- La partie se termine quand **toutes les familles (10 espèces) sont complètes** — pas nécessairement chez le même joueur, mais chacune des 10 espèces doit avoir ses 4 exemplaires réunis dans la main d'un seul joueur.
+- **Phase de marchandage forcé** : dès que la pioche d'animaux est épuisée, les enchères s'arrêtent et le marchandage devient **obligatoire** à chaque tour. Un joueur qui, à ce stade, ne possède que des familles complètes (ou plus aucun animal) ne peut plus participer à un marchandage et passe son tour automatiquement.
+- Chaque joueur totalise la valeur de ses familles **complètes** uniquement, puis **multiplie ce total par le nombre de familles complètes qu'il possède** (ex. 4 cochons + 4 chiens + 4 coqs = 820, ×3 familles = 2460 points).
+- Les animaux isolés (famille incomplète) ne rapportent rien.
+- Le joueur avec le score total le plus élevé gagne.
+- **Note de design** : l'argent restant en main ne compte pas dans le score final.
+
+## 5. Résumé des décisions de configuration figées
+Ces points sont **désormais figés dans le moteur** :
+- **Barème de valeur par espèce** : défini dans `species.config.ts`.
+- **Mise de départ** : 90 points par joueur (2×0, 4×10, 1×50), banque partagée de 55 cartes.
+- **Fin de partie** : quand toutes les 10 espèces sont complètes (pas avant).
+- **Multiplicateur de score** : chaque joueur multiplie le total de ses familles complètes par le nombre de familles qu'il possède.
+- **Comportement de marchandage obligatoire** : dès la pioche épuisée, tout échange devient obligatoire.
+
+Les points ci-dessous restent configurables selon les éditions :
+- Comportement exact en cas d'égalité lors d'un Kuhhandel (défini en `kuhhandel.config.ts`).
 - Comportement si personne n'enchérit sur une carte animal.
-- Condition exacte de fin de partie (pioche épuisée vs nombre de tours).
-- L'argent restant compte-t-il dans le score final (par défaut : non).
 
 ## 6. Variantes envisageables (post-v1, hors périmètre initial)
 - Mode "rapide" (moins de cartes, partie en 15 min).
