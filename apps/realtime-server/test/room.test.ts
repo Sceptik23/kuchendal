@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameRoom } from '../src/room/GameRoom.js';
+import { DEEP_BANKROLL, groupedDeckFactory, playAuctionOnlyThenConsolidate } from './helpers/playToGameOver.js';
 
 describe('GameRoom — lobby', () => {
   it('rejects joining once the room is full (MAX_PLAYERS)', () => {
@@ -155,38 +156,20 @@ describe('GameRoom — Kuhhandel turn', () => {
 
 describe('GameRoom — full game to GAME_OVER', () => {
   it('finishes once the deck is exhausted and computes final scores', () => {
-    // Deep, single-denomination bankroll: this test drives 40 fixed-amount
-    // bids to prove the full turn/deck/scoring loop reaches GAME_OVER, not
-    // to exercise exact-change bookkeeping (a documented Phase 1 limitation
-    // of the underlying game-engine, cf. applyResults.ts).
-    const deepBankroll = (bank: import('@kuhhandel/game-engine').MoneyBank, playerCount: number) => ({
-      bank,
-      hands: Array.from({ length: playerCount }, (_, p) =>
-        Array.from({ length: 20 }, (_, i) => ({
-          id: `deep-${p}-${i}-${Math.random()}`,
-          value: 10 as const,
-        })),
-      ),
-    });
-    const room = new GameRoom(() => 0, deepBankroll);
+    // Deep, single-denomination bankroll plus a deterministic grouped deck:
+    // this test drives the full auction phase, then the forced-Kuhhandel
+    // consolidation phase (real end condition = all species families
+    // complete, not merely deck-empty — see room.forcedKuhhandel.test.ts),
+    // to prove the full turn/deck/scoring loop reaches a true GAME_OVER.
+    const room = new GameRoom(() => 0, DEEP_BANKROLL, undefined, undefined, undefined, groupedDeckFactory);
     const p1 = room.join('p1');
-    room.join('p2');
-    room.join('p3');
+    const p2 = room.join('p2');
+    const p3 = room.join('p3');
     room.start();
 
-    let view = room.getViewFor(p1);
-    while (view.status === 'in_progress') {
-      const activeId = view.activePlayerId!;
-      const others = view.players.map((p) => p.id).filter((id) => id !== activeId);
+    playAuctionOnlyThenConsolidate(room, [p1, p2, p3]);
 
-      room.startAuction(activeId);
-      room.placeBid(others[0]!, 10);
-      room.pass(others[1]!);
-      room.sellerDecision(activeId, 'sell');
-
-      view = room.getViewFor(p1);
-    }
-
+    const view = room.getViewFor(p1);
     expect(view.deckCount).toBe(0);
     expect(view.status).toBe('finished');
     for (const player of view.players) {

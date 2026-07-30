@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { GameRoom } from "../src/room/GameRoom.js";
 import type { GamePersistenceAdapter } from "../src/persistence/types.js";
+import { DEEP_BANKROLL, groupedDeckFactory, playAuctionOnlyThenConsolidate } from "./helpers/playToGameOver.js";
 
 function fakeAdapter(): GamePersistenceAdapter & {
   createGame: ReturnType<typeof vi.fn>;
@@ -93,29 +94,14 @@ describe("GameRoom — persistence side channel", () => {
 
   it("finishes the game with final scores and ranks once the deck is exhausted", async () => {
     const persistence = fakeAdapter();
-    const deepBankroll = (bank: import('@kuhhandel/game-engine').MoneyBank, playerCount: number) => ({
-      bank,
-      hands: Array.from({ length: playerCount }, (_, p) =>
-        Array.from({ length: 20 }, (_, i) => ({ id: `deep-${p}-${i}-${Math.random()}`, value: 10 as const })),
-      ),
-    });
-    const room = new GameRoom(() => 0, deepBankroll, persistence);
+    const room = new GameRoom(() => 0, DEEP_BANKROLL, persistence, undefined, undefined, groupedDeckFactory);
     const p1 = room.join("p1", "user-1");
-    room.join("p2", "user-2");
-    room.join("p3", "user-3");
+    const p2 = room.join("p2", "user-2");
+    const p3 = room.join("p3", "user-3");
     room.start();
     await flushMicrotasks();
 
-    let view = room.getViewFor(p1);
-    while (view.status === "in_progress") {
-      const activeId = view.activePlayerId!;
-      const others = view.players.map((p) => p.id).filter((id) => id !== activeId);
-      room.startAuction(activeId);
-      room.placeBid(others[0]!, 10);
-      room.pass(others[1]!);
-      room.sellerDecision(activeId, "sell");
-      view = room.getViewFor(p1);
-    }
+    playAuctionOnlyThenConsolidate(room, [p1, p2, p3]);
     await flushMicrotasks();
 
     expect(persistence.finishGame).toHaveBeenCalledTimes(1);
