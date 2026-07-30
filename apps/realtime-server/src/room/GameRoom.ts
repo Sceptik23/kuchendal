@@ -274,7 +274,13 @@ export class GameRoom {
     if (this.auction) {
       const state = this.auction;
       if (state.status === 'bidding') {
-        const botBidder = state.activeBidders.find((id) => this.botPlayerIds.has(id));
+        // Never let a bot react to its own bid: it has nothing new to
+        // respond to, and re-triggering it here would let it bid against
+        // itself in a synchronous loop, closing the auction before any
+        // other active bidder (a human, or another bot) ever gets a turn.
+        const botBidder = state.activeBidders.find(
+          (id) => this.botPlayerIds.has(id) && id !== state.highestBid?.playerId,
+        );
         if (botBidder) {
           const bot = this.findPlayer(botBidder);
           const bid = decideAuctionBid(bot, state, this.botConfig(botBidder), this.rng);

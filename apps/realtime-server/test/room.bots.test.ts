@@ -223,3 +223,56 @@ describe("GameRoom — FORCED_KUHHANDEL bot fallback (regression)", () => {
     expect(view.kuhhandel?.species).toBe("coq");
   });
 });
+
+/**
+ * Regression: with exactly one bot bidder and one human bidder, runBotLoop
+ * used to pick "the first bot still in activeBidders" without checking
+ * whether that bot already held the highest bid. Since bidding never
+ * removes a player from activeBidders, and placeBid/pass re-trigger
+ * runBotLoop, the SAME bot kept getting selected and kept bidding against
+ * its own prior bid — repeatedly, synchronously, inside a single
+ * top-level runBotLoop() call — until it exhausted its budget and passed.
+ * At that point only the human remained active, and pass()'s "one bidder
+ * left with a highest bid already set" rule closed the auction instantly,
+ * so the human never got a single chance to bid or even explicitly pass.
+ */
+describe("GameRoom — lone bot bidder does not bid against itself (regression)", () => {
+  it("a bot that already holds the highest bid does not re-bid before the human gets a turn", () => {
+    const room = new GameRoom(() => 0);
+    const p1 = room.join("p1");
+    const botSellerId = room.addBot(p1);
+    const botBidderId = room.addBot(p1);
+    room.start();
+
+    const internal = room as unknown as GameRoomInternals;
+    const sellerIndex = internal.players.findIndex((p) => p.id === botSellerId);
+    const bidderIndex = internal.players.findIndex((p) => p.id === botBidderId);
+
+    // Deep, varied bankroll: if the bidding bot were allowed to react to its
+    // own bid, it would keep finding a higher affordable denomination for
+    // several rounds before finally exhausting its budget and passing.
+    internal.players = internal.players.map((p, i) => {
+      if (i === bidderIndex) {
+        return {
+          ...p,
+          money: ([10, 50, 100, 200, 500] as const).map((value, idx) => ({
+            id: `bidder-money-${idx}`,
+            value,
+          })),
+        };
+      }
+      return p;
+    });
+    internal.deck = [{ id: "vache-test", species: "vache" }];
+    internal.activePlayerIndex = sellerIndex;
+    internal.auction = null;
+    internal.kuhhandel = null;
+
+    internal.runBotLoop();
+
+    const view = room.getViewFor(p1);
+    expect(view.auction).not.toBeNull();
+    expect(view.auction!.status).toBe("bidding");
+    expect(view.auction!.activeBidders).toContain(p1);
+  });
+});
