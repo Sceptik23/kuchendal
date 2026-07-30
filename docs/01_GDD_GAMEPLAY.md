@@ -6,7 +6,7 @@
 
 ### 1.1 Cartes animaux
 - 10 espèces, 4 exemplaires par espèce = 40 cartes animaux.
-- Espèces suggérées (fidèles à l'esprit du jeu original, noms libres de droits à finaliser) : Cochon, Chèvre, Oie, Âne, Mouton, Chien, Chat, Cheval, Bœuf, Vache.
+- Espèces suggérées (fidèles à l'esprit du jeu original, noms libres de droits à finaliser) : Coq, Oie, Chat, Chien, Mouton, Chèvre, Âne, Cochon, Vache, Cheval.
 - Chaque espèce a une **valeur de famille complète** distincte (barème à définir dans une table de configuration `species.config.ts`, ex. valeurs croissantes de 100 à 1000 selon rareté perçue).
 - Une famille incomplète ne vaut quasiment rien en fin de partie (valeur résiduelle symbolique ou nulle — à trancher en configuration, mais l'esprit du jeu est : "famille complète = beaucoup, animaux isolés = presque rien").
 
