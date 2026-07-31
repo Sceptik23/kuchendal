@@ -13,7 +13,7 @@ import {
   type GameStateView,
   type RareEventEntry,
 } from "@kuhhandel/shared-types";
-import { SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
+import { SPECIES_COLOR, SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
 import styles from "./GameTable.module.css";
 
 /**
@@ -277,7 +277,7 @@ export function GameTable() {
                   label={SPECIES_LABEL[state.auction.card.species]}
                   value={SPECIES_FAMILY_VALUE[state.auction.card.species]}
                   imageSlot={SPECIES_IMAGE_SLOT[state.auction.card.species]}
-                  accentColor="var(--kd-accent-cyan)"
+                  accentColor={SPECIES_COLOR[state.auction.card.species]}
                 />
               </div>
               <AuctionPanel />
@@ -322,14 +322,14 @@ export function GameTable() {
             {currentPlayer.animals.length === 0 && (
               <span className={styles.selfHandEmpty}>Aucun animal</span>
             )}
-            {currentPlayer.animals.map((a, i) => (
+            {currentPlayer.animals.map((a) => (
               <div key={a.id} className={styles.selfHandCard}>
                 <PlayingCard
                   variant="animal"
                   label={SPECIES_LABEL[a.species]}
                   value={SPECIES_FAMILY_VALUE[a.species]}
                   imageSlot={SPECIES_IMAGE_SLOT[a.species]}
-                  accentColor={OPPONENT_ACCENTS[i % OPPONENT_ACCENTS.length] as string}
+                  accentColor={SPECIES_COLOR[a.species]}
                 />
               </div>
             ))}

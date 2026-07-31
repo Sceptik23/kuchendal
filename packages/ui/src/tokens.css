@@ -28,6 +28,16 @@
   --kd-rarity-mythique: var(--kd-accent-yellow);
   --kd-rarity-secret: var(--kd-accent-green);
 
+  /* Species identity colors — unlike --kd-accent-*, all 10 are active
+     simultaneously wherever animal cards render (hand, auction, Kuhhandel
+     panel), so they're a separate token family. 5 reuse existing
+     --kd-accent-* values (coq, oie, chat, chien, ane); these 5 are new. */
+  --kd-species-mouton: oklch(72% 0.24 20);
+  --kd-species-chevre: oklch(85% 0.22 70);
+  --kd-species-cochon: oklch(68% 0.25 300);
+  --kd-species-vache: oklch(68% 0.22 260);
+  --kd-species-cheval: oklch(75% 0.20 170);
+
   /* Glow (replaces drop shadows on flat surfaces, per shape language) */
   --kd-glow-strength: 55%;
   --kd-glow-strength-strong: 60%;

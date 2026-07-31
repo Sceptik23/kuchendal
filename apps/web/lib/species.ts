@@ -37,3 +37,20 @@ export const SPECIES_LABEL: Record<SpeciesKey, string> = {
   vache: "Vache",
   cheval: "Cheval",
 };
+
+/** Fixed per-species color identity (spec: gameplay-feedback-and-visual-polish
+ * §3) — used everywhere a `variant="animal"` PlayingCard renders, replacing
+ * the old per-context accentColor. 5 reuse existing --kd-accent-* tokens, 5
+ * use the new --kd-species-* tokens in tokens.css. */
+export const SPECIES_COLOR: Record<SpeciesKey, string> = {
+  coq: "var(--kd-accent-orange)",
+  oie: "var(--kd-accent-yellow)",
+  chat: "var(--kd-accent-pink)",
+  chien: "var(--kd-accent-cyan)",
+  mouton: "var(--kd-species-mouton)",
+  chevre: "var(--kd-species-chevre)",
+  ane: "var(--kd-accent-green)",
+  cochon: "var(--kd-species-cochon)",
+  vache: "var(--kd-species-vache)",
+  cheval: "var(--kd-species-cheval)",
+};
