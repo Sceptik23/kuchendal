@@ -23,3 +23,9 @@ export type { InfoStatus, InfoStatusIconProps } from './InfoStatusIcon/InfoStatu
 
 export { EventFeed } from './EventFeed/EventFeed';
 export type { EventFeedEntry, EventFeedProps } from './EventFeed/EventFeed';
+
+export { TransferGhost } from './TransferGhost/TransferGhost';
+export type { TransferGhostProps } from './TransferGhost/TransferGhost';
+
+export { rectOf, deltaTransform } from './utils/flip';
+export type { Rect } from './utils/flip';
