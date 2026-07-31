@@ -20,3 +20,6 @@ export { Select } from './FormField/Select';
 
 export { InfoStatusIcon } from './InfoStatusIcon/InfoStatusIcon';
 export type { InfoStatus, InfoStatusIconProps } from './InfoStatusIcon/InfoStatusIcon';
+
+export { EventFeed } from './EventFeed/EventFeed';
+export type { EventFeedEntry, EventFeedProps } from './EventFeed/EventFeed';
