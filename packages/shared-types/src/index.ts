@@ -50,6 +50,10 @@ export interface GameStateView {
   distinctions: DistinctionEntry[];
   /** Recent rare events (07_META_GAME.md §6) — cosmetic only, never affects scoring. */
   rareEventsFeed: RareEventEntry[];
+  /** How many golden donkeys have been revealed so far — increments the
+   * known 50/100/200/500 bonus sequence (client derives the payout amount
+   * from this count, not from a duplicated wire field). */
+  donkeyRevealCount: number;
 }
 
 export interface PublicRoomListing {

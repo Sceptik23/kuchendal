@@ -654,6 +654,7 @@ export class GameRoom {
       narratorFeed: this.narratorFeed,
       distinctions: this.status === 'finished' ? this.finalDistinctions : [],
       rareEventsFeed: this.rareEventsFeed,
+      donkeyRevealCount: this.donkeyRevealCount,
     };
   }
 

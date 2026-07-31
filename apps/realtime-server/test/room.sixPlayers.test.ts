@@ -76,6 +76,8 @@ describe('GameRoom — 6 players (MAX_PLAYERS) against the finite money bank', (
     const ids = joinSix(room);
     room.start();
 
+    expect(room.getViewFor(ids[0]!).donkeyRevealCount).toBe(0);
+
     // Four consecutive ânes: 6 players × 4 reveals = 24 bonus draws on top of
     // the 42 starting cards, well past the box's 55-card supply.
     for (let reveal = 0; reveal < 4; reveal++) {
@@ -86,6 +88,7 @@ describe('GameRoom — 6 players (MAX_PLAYERS) against the finite money bank', (
         if (id !== active) room.pass(id);
       }
       expect(() => room.sellerDecision(active, 'keep')).not.toThrow();
+      expect(room.getViewFor(ids[0]!).donkeyRevealCount).toBe(reveal + 1);
     }
 
     for (const id of ids) {
