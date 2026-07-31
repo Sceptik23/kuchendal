@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { playSound } from "../lib/sound";
+import { familyCounts } from "../lib/gameEvents";
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
 import { Button, InfoStatusIcon, PlayerAvatarBadge, PlayingCard, ToastNarrator } from "@kuhhandel/ui";
@@ -28,12 +29,6 @@ const OPPONENT_ACCENTS = [
   "var(--kd-accent-yellow)",
   "var(--kd-accent-orange)",
 ];
-
-function familyCounts(animals: { species: string }[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const a of animals) counts[a.species] = (counts[a.species] ?? 0) + 1;
-  return counts;
-}
 
 /** 08_AI.md §3 — human-readable flavor text for each distinction key. */
 const DISTINCTION_LABELS: Record<DistinctionEntry["key"], { title: string; description: string }> = {
