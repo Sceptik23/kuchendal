@@ -77,3 +77,22 @@
   color: var(--kd-text-muted);
   margin-top: 8px;
 }
+
+.flipContainer {
+  perspective: 800px;
+}
+
+@keyframes kd-card-flip {
+  from {
+    transform: rotateY(180deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+.revealing {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: kd-card-flip 0.5s ease-out;
+}

@@ -156,6 +156,14 @@ export function GameTable() {
   const playerId = useGameStore((s) => s.playerId);
   const leave = useGameStore((s) => s.leave);
   const eventFeedEntries = useEventFeed(state);
+  const lastRevealedCardIdRef = useRef<string | null>(null);
+  const auctionCardId = state?.auction?.card.id ?? null;
+  const isFreshReveal = auctionCardId !== null && auctionCardId !== lastRevealedCardIdRef.current;
+
+  useEffect(() => {
+    lastRevealedCardIdRef.current = auctionCardId;
+  }, [auctionCardId]);
+
   if (!state || !playerId) return null;
 
   const isMyTurn = state.activePlayerId === playerId;
@@ -276,6 +284,7 @@ export function GameTable() {
                     value={SPECIES_FAMILY_VALUE[state.auction.card.species]}
                     imageSlot={SPECIES_IMAGE_SLOT[state.auction.card.species]}
                     accentColor={SPECIES_COLOR[state.auction.card.species]}
+                    revealing={isFreshReveal}
                   />
                 </div>
                 <AuctionPanel />
