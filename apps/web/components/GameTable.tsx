@@ -16,6 +16,7 @@ import {
 } from "@kuhhandel/shared-types";
 import { SPECIES_COLOR, SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
 import { useEventFeed } from "../hooks/useEventFeed";
+import { useFamilyGlow } from "../hooks/useFamilyGlow";
 import styles from "./GameTable.module.css";
 
 /**
@@ -156,6 +157,7 @@ export function GameTable() {
   const playerId = useGameStore((s) => s.playerId);
   const leave = useGameStore((s) => s.leave);
   const eventFeedEntries = useEventFeed(state);
+  const familyGlow = useFamilyGlow(state, playerId);
   const lastRevealedCardIdRef = useRef<string | null>(null);
   const auctionCardId = state?.auction?.card.id ?? null;
   const isFreshReveal = auctionCardId !== null && auctionCardId !== lastRevealedCardIdRef.current;
@@ -341,6 +343,8 @@ export function GameTable() {
                   value={SPECIES_FAMILY_VALUE[a.species]}
                   imageSlot={SPECIES_IMAGE_SLOT[a.species]}
                   accentColor={SPECIES_COLOR[a.species]}
+                  completed={familyGlow.isCompleted(a.species)}
+                  justCompleted={familyGlow.isJustCompleted(a.species)}
                 />
               </div>
             ))}

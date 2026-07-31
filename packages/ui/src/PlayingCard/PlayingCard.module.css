@@ -96,3 +96,24 @@
   backface-visibility: hidden;
   animation: kd-card-flip 0.5s ease-out;
 }
+
+@keyframes kd-family-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 var(--kd-glow-radius-md)
+      color-mix(in oklch, var(--pc-accent) var(--kd-glow-strength), transparent);
+  }
+  50% {
+    box-shadow: 0 0 var(--kd-glow-radius-lg)
+      color-mix(in oklch, var(--pc-accent) 90%, transparent);
+  }
+}
+
+.justCompleted {
+  animation: kd-family-pulse 0.6s ease-in-out 2;
+}
+
+.completed {
+  box-shadow: 0 0 var(--kd-glow-radius-md)
+    color-mix(in oklch, var(--pc-accent) var(--kd-glow-strength-strong), transparent);
+}

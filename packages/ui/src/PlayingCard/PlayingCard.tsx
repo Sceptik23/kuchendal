@@ -16,6 +16,12 @@ export interface PlayingCardProps {
    * face-up (spec §2 "Card flip") — not a persistent state the caller keeps
    * toggled on. */
   revealing?: boolean;
+  /** Persistent, non-animated highlighted rest state once this card's
+   * 4-of-a-kind family is complete (spec §2 "Family-complete glow"). */
+  completed?: boolean;
+  /** One-shot pulse played the instant the family completes; settles into
+   * the `completed` rest state afterwards. */
+  justCompleted?: boolean;
 }
 
 export function PlayingCard({
@@ -25,11 +31,19 @@ export function PlayingCard({
   imageSlot,
   accentColor,
   revealing = false,
+  completed = false,
+  justCompleted = false,
 }: PlayingCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const style = { '--pc-accent': accentColor } as CSSProperties;
 
-  const cardClassName = [styles.card, styles[variant], revealing ? styles.revealing : '']
+  const cardClassName = [
+    styles.card,
+    styles[variant],
+    revealing ? styles.revealing : '',
+    completed ? styles.completed : '',
+    justCompleted ? styles.justCompleted : '',
+  ]
     .filter(Boolean)
     .join(' ');
 
