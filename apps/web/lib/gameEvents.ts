@@ -66,7 +66,7 @@ export function deriveGameEvents(prev: GameStateView | null, next: GameStateView
   if (!prev) return [];
   const events: GameEvent[] = [];
 
-  if (prev.auction && !next.auction && prev.deckCount !== next.deckCount) {
+  if (prev.auction && !next.auction) {
     const { card, highestBid, sellerId } = prev.auction;
     const speciesLabel = SPECIES_LABEL[card.species];
     if (highestBid) {
