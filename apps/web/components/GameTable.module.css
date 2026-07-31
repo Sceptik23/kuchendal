@@ -110,6 +110,20 @@
 
 /* Center stage */
 
+.tableRow {
+  display: flex;
+  gap: var(--kd-space-5);
+  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+}
+
+.eventFeedSlot {
+  width: 260px;
+  flex-shrink: 0;
+  height: 320px;
+}
+
 .centerStage {
   position: relative;
   flex: 1;
@@ -514,6 +528,15 @@
   .auctionStage {
     flex-direction: column;
     align-items: center;
+  }
+
+  .tableRow {
+    flex-direction: column;
+  }
+
+  .eventFeedSlot {
+    width: 100%;
+    height: 160px;
   }
 
   .selfRail {

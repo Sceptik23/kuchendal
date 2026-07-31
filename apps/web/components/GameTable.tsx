@@ -7,7 +7,7 @@ import { playSound } from "../lib/sound";
 import { familyCounts } from "../lib/gameEvents";
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
-import { Button, InfoStatusIcon, PlayerAvatarBadge, PlayingCard, ToastNarrator } from "@kuhhandel/ui";
+import { Button, EventFeed, InfoStatusIcon, PlayerAvatarBadge, PlayingCard, ToastNarrator } from "@kuhhandel/ui";
 import {
   SPECIES_FAMILY_VALUE,
   type DistinctionEntry,
@@ -15,6 +15,7 @@ import {
   type RareEventEntry,
 } from "@kuhhandel/shared-types";
 import { SPECIES_COLOR, SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
+import { useEventFeed } from "../hooks/useEventFeed";
 import styles from "./GameTable.module.css";
 
 /**
@@ -154,6 +155,7 @@ export function GameTable() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
   const leave = useGameStore((s) => s.leave);
+  const eventFeedEntries = useEventFeed(state);
   if (!state || !playerId) return null;
 
   const isMyTurn = state.activePlayerId === playerId;
@@ -263,32 +265,37 @@ export function GameTable() {
             })}
         </div>
 
-        <div className={styles.centerStage}>
-          {state.auction && (
-            <div className={styles.auctionStage}>
-              <div className={styles.auctionCard}>
-                <PlayingCard
-                  variant="animal"
-                  label={SPECIES_LABEL[state.auction.card.species]}
-                  value={SPECIES_FAMILY_VALUE[state.auction.card.species]}
-                  imageSlot={SPECIES_IMAGE_SLOT[state.auction.card.species]}
-                  accentColor={SPECIES_COLOR[state.auction.card.species]}
-                />
+        <div className={styles.tableRow}>
+          <div className={styles.centerStage}>
+            {state.auction && (
+              <div className={styles.auctionStage}>
+                <div className={styles.auctionCard}>
+                  <PlayingCard
+                    variant="animal"
+                    label={SPECIES_LABEL[state.auction.card.species]}
+                    value={SPECIES_FAMILY_VALUE[state.auction.card.species]}
+                    imageSlot={SPECIES_IMAGE_SLOT[state.auction.card.species]}
+                    accentColor={SPECIES_COLOR[state.auction.card.species]}
+                  />
+                </div>
+                <AuctionPanel />
               </div>
-              <AuctionPanel />
-            </div>
-          )}
-          <KuhhandelPanel />
-          {latestNarratorMessage && (
-            <div className={styles.narratorSlot}>
-              {/*
-                GameStateView doesn't yet expose which narrator style the
-                room uses, so this is hardcoded to "sport" as a placeholder
-                until that field exists on the backend.
-              */}
-              <ToastNarrator narratorStyle="sport" message={latestNarratorMessage.text} />
-            </div>
-          )}
+            )}
+            <KuhhandelPanel />
+            {latestNarratorMessage && (
+              <div className={styles.narratorSlot}>
+                {/*
+                  GameStateView doesn't yet expose which narrator style the
+                  room uses, so this is hardcoded to "sport" as a placeholder
+                  until that field exists on the backend.
+                */}
+                <ToastNarrator narratorStyle="sport" message={latestNarratorMessage.text} />
+              </div>
+            )}
+          </div>
+          <div className={styles.eventFeedSlot}>
+            <EventFeed entries={eventFeedEntries} />
+          </div>
         </div>
 
         {isMyTurn && noFlowInProgress && (
