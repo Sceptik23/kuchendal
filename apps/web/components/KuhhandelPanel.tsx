@@ -5,6 +5,7 @@ import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { Button, InfoStatusIcon, PlayingCard, Select } from "@kuhhandel/ui";
 import { SPECIES_LABEL } from "../lib/species";
+import { registerCardPosition } from "../lib/cardPositions";
 import gameTableStyles from "./GameTable.module.css";
 import styles from "./KuhhandelPanel.module.css";
 
@@ -37,6 +38,7 @@ function MoneyPicker({
             <button
               key={card.id}
               type="button"
+              ref={(el) => registerCardPosition(card.id, el)}
               className={[styles.moneyToggle, isSelected ? styles.selected : ""]
                 .filter(Boolean)
                 .join(" ")}
@@ -155,7 +157,7 @@ export function KuhhandelPanel() {
           {kuhhandel.initiatorOffer && (
             <div className={styles.trayCards}>
               {kuhhandel.initiatorOffer.map((card) => (
-                <div key={card.id} className={styles.trayCard}>
+                <div key={card.id} className={styles.trayCard} ref={(el) => registerCardPosition(card.id, el)}>
                   <PlayingCard
                     variant="money"
                     label={`Billet ${card.value}`}

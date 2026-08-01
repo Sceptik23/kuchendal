@@ -4,10 +4,25 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { playSound } from "../lib/sound";
-import { familyCounts } from "../lib/gameEvents";
+import {
+  familyCounts,
+  detectAnimalTransfers,
+  detectMoneyTransfers,
+  type AnimalTransfer,
+  type MoneyTransfer,
+} from "../lib/gameEvents";
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
-import { Button, EventFeed, InfoStatusIcon, PlayerAvatarBadge, PlayingCard, ToastNarrator } from "@kuhhandel/ui";
+import {
+  Button,
+  EventFeed,
+  InfoStatusIcon,
+  PlayerAvatarBadge,
+  PlayingCard,
+  ToastNarrator,
+  TransferGhost,
+  type Rect,
+} from "@kuhhandel/ui";
 import {
   SPECIES_FAMILY_VALUE,
   type DistinctionEntry,
@@ -17,6 +32,12 @@ import {
 import { SPECIES_COLOR, SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
 import { useEventFeed } from "../hooks/useEventFeed";
 import { useFamilyGlow } from "../hooks/useFamilyGlow";
+import {
+  registerCardPosition,
+  registerPlayerSlot,
+  getCardRect,
+  getPlayerSlotRect,
+} from "../lib/cardPositions";
 import styles from "./GameTable.module.css";
 
 /**
@@ -166,6 +187,38 @@ export function GameTable() {
     lastRevealedCardIdRef.current = auctionCardId;
   }, [auctionCardId]);
 
+  const prevTransferStateRef = useRef<GameStateView | null>(null);
+  const [animalGhosts, setAnimalGhosts] = useState<
+    (AnimalTransfer & { id: string; from: Rect; to: Rect })[]
+  >([]);
+  const [moneyGhosts, setMoneyGhosts] = useState<
+    (MoneyTransfer & { id: string; from: Rect; to: Rect })[]
+  >([]);
+  const ghostSeqRef = useRef(0);
+
+  useEffect(() => {
+    if (!state) return;
+    const prevState = prevTransferStateRef.current;
+    const animalTransfers = detectAnimalTransfers(prevState, state);
+    const moneyTransfers = detectMoneyTransfers(prevState, state);
+    prevTransferStateRef.current = state;
+
+    for (const t of animalTransfers) {
+      const from = getPlayerSlotRect(t.fromPlayerId) ?? getCardRect(t.cardId);
+      const to = getPlayerSlotRect(t.toPlayerId);
+      if (!from || !to) continue;
+      const id = `${ghostSeqRef.current++}`;
+      setAnimalGhosts((prev) => [...prev, { ...t, id, from, to }]);
+    }
+    for (const t of moneyTransfers) {
+      const from = getPlayerSlotRect(t.fromPlayerId);
+      const to = getPlayerSlotRect(t.toPlayerId);
+      if (!from || !to) continue;
+      const id = `${ghostSeqRef.current++}`;
+      setMoneyGhosts((prev) => [...prev, { ...t, id, from, to }]);
+    }
+  }, [state]);
+
   if (!state || !playerId) return null;
 
   const isMyTurn = state.activePlayerId === playerId;
@@ -248,7 +301,11 @@ export function GameTable() {
               const isActive = p.id === state.activePlayerId;
               const accent = OPPONENT_ACCENTS[i % OPPONENT_ACCENTS.length];
               return (
-                <div key={p.id} className={styles.opponentCard}>
+                <div
+                  key={p.id}
+                  className={styles.opponentCard}
+                  ref={(el) => registerPlayerSlot(p.id, el)}
+                >
                   <div
                     className={[styles.avatarRing, isActive ? styles.avatarRingActive : ""]
                       .filter(Boolean)
@@ -321,7 +378,7 @@ export function GameTable() {
 
       {currentPlayer && (
         <div className={styles.selfRail}>
-          <div className={styles.selfIdentity}>
+          <div className={styles.selfIdentity} ref={(el) => registerPlayerSlot(playerId, el)}>
             <PlayerAvatarBadge name={currentPlayer.name} size={56} />
             <div className={styles.selfName}>{currentPlayer.name} (toi)</div>
             <div className={styles.selfMoney}>
@@ -336,7 +393,11 @@ export function GameTable() {
               <span className={styles.selfHandEmpty}>Aucun animal</span>
             )}
             {currentPlayer.animals.map((a) => (
-              <div key={a.id} className={styles.selfHandCard}>
+              <div
+                key={a.id}
+                className={styles.selfHandCard}
+                ref={(el) => registerCardPosition(a.id, el)}
+              >
                 <PlayingCard
                   variant="animal"
                   label={SPECIES_LABEL[a.species]}
@@ -353,6 +414,42 @@ export function GameTable() {
       )}
 
       <RareEventBanner state={state} />
+
+      {animalGhosts.map((g) => (
+        <TransferGhost
+          key={g.id}
+          from={g.from}
+          to={g.to}
+          onDone={() => setAnimalGhosts((prev) => prev.filter((x) => x.id !== g.id))}
+        >
+          <PlayingCard
+            variant="animal"
+            label={SPECIES_LABEL[g.species as keyof typeof SPECIES_LABEL]}
+            value={SPECIES_FAMILY_VALUE[g.species as keyof typeof SPECIES_FAMILY_VALUE]}
+            imageSlot={SPECIES_IMAGE_SLOT[g.species as keyof typeof SPECIES_IMAGE_SLOT]}
+            accentColor={SPECIES_COLOR[g.species as keyof typeof SPECIES_COLOR]}
+          />
+        </TransferGhost>
+      ))}
+      {moneyGhosts.map((g) => (
+        <TransferGhost
+          key={g.id}
+          from={g.from}
+          to={g.to}
+          onDone={() => setMoneyGhosts((prev) => prev.filter((x) => x.id !== g.id))}
+        >
+          {/* Generic bill-back visual: the viewer isn't necessarily a party
+              to this transfer and must never be shown a value they have no
+              way of actually knowing (existing hidden-info invariant). */}
+          <PlayingCard
+            variant="money"
+            label={`${g.cardCount} carte(s)`}
+            value={0}
+            imageSlot="bill-0"
+            accentColor="var(--kd-accent-yellow)"
+          />
+        </TransferGhost>
+      ))}
     </div>
   );
 }

@@ -21,6 +21,19 @@ export interface FamilyCompletion {
   species: SpeciesKey;
 }
 
+export interface AnimalTransfer {
+  cardId: string;
+  species: string;
+  fromPlayerId: string;
+  toPlayerId: string;
+}
+
+export interface MoneyTransfer {
+  fromPlayerId: string;
+  toPlayerId: string;
+  cardCount: number;
+}
+
 export function familyCounts(animals: { species: string }[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const a of animals) counts[a.species] = (counts[a.species] ?? 0) + 1;
@@ -56,6 +69,81 @@ export function detectFamilyCompletions(
   }
 
   return completions;
+}
+
+/** Diffs two consecutive `GameStateView` snapshots and returns every animal
+ * card that changed owner — relies solely on `players[].animals`, which is
+ * public information (animal ownership is never hidden), so this is safe to
+ * compute for any viewer. Backs the seller→buyer transfer-ghost animation. */
+export function detectAnimalTransfers(prev: GameStateView | null, next: GameStateView): AnimalTransfer[] {
+  if (!prev) return [];
+  const transfers: AnimalTransfer[] = [];
+  const prevOwner = new Map<string, string>();
+  for (const p of prev.players) for (const a of p.animals) prevOwner.set(a.id, p.id);
+
+  for (const p of next.players) {
+    for (const a of p.animals) {
+      const before = prevOwner.get(a.id);
+      if (before && before !== p.id) {
+        transfers.push({ cardId: a.id, species: a.species, fromPlayerId: before, toPlayerId: p.id });
+      }
+    }
+  }
+
+  // An auction sale is *not* caught by the ownership diff above: the
+  // revealed card is dealt straight from the deck and never appears in any
+  // player's `animals` until the moment it's assigned to whoever ends up
+  // with it, so it has no "before" owner to diff against. Special-case a
+  // just-resolved auction by finding who the card belongs to now and
+  // comparing against the seller — if they differ, the sale actually
+  // transferred it (a "keep" decision leaves it with the seller, i.e. no
+  // transfer to animate).
+  //
+  // The condition below deliberately checks "the previous auction's card is
+  // no longer the current auction" rather than "next.auction is null":
+  // when the winning bidder (frequently a bot) immediately reveals another
+  // card for auction on their next action, a client that hasn't rendered in
+  // between (e.g. a backgrounded tab, or two broadcasts arriving in the same
+  // render tick) never observes an intermediate `auction: null` state — it
+  // only ever sees `next.auction` already pointing at the *new* card. Gating
+  // on `auction === null` alone would silently drop every such sale's animal
+  // ghost (verified against a live 3-player game: an auction resolved and a
+  // new one started before this effect's next run, and `next.auction` was
+  // the new card, not null).
+  if (prev.auction && (!next.auction || next.auction.card.id !== prev.auction.card.id)) {
+    const { card, sellerId } = prev.auction;
+    const newOwner = next.players.find((p) => p.animals.some((a) => a.id === card.id));
+    if (newOwner && newOwner.id !== sellerId) {
+      transfers.push({ cardId: card.id, species: card.species, fromPlayerId: sellerId, toPlayerId: newOwner.id });
+    }
+  }
+
+  return transfers;
+}
+
+/** Diffs two consecutive `GameStateView` snapshots and returns any single
+ * payer→payee money movement, inferred only from `moneyCount` (never the
+ * real card values of a player who isn't the viewer) — auctions and
+ * Kuhhandel resolutions only ever produce a single-payer/single-payee shape,
+ * so anything else is treated as unrepresentable and skipped. */
+export function detectMoneyTransfers(prev: GameStateView | null, next: GameStateView): MoneyTransfer[] {
+  if (!prev) return [];
+  const transfers: MoneyTransfer[] = [];
+  const deltas = next.players.map((p) => {
+    const before = prev.players.find((pp) => pp.id === p.id)?.moneyCount ?? p.moneyCount;
+    return { playerId: p.id, delta: p.moneyCount - before };
+  });
+  const payers = deltas.filter((d) => d.delta < 0);
+  const payees = deltas.filter((d) => d.delta > 0);
+  // Single-payer/single-payee is the only shape auctions and Kuhhandel produce.
+  if (payers.length === 1 && payees.length === 1) {
+    transfers.push({
+      fromPlayerId: payers[0]!.playerId,
+      toPlayerId: payees[0]!.playerId,
+      cardCount: payees[0]!.delta,
+    });
+  }
+  return transfers;
 }
 
 /** Diffs two consecutive `GameStateView` snapshots into the persistent

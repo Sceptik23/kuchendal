@@ -4,6 +4,7 @@ import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { Button, PlayingCard } from "@kuhhandel/ui";
 import { SPECIES_LABEL } from "../lib/species";
+import { registerCardPosition } from "../lib/cardPositions";
 import styles from "./AuctionPanel.module.css";
 
 export function AuctionPanel() {
@@ -45,6 +46,7 @@ export function AuctionPanel() {
                 <button
                   key={card.id}
                   type="button"
+                  ref={(el) => registerCardPosition(card.id, el)}
                   className={[styles.bidCard, disabled ? styles.bidCardDisabled : ""]
                     .filter(Boolean)
                     .join(" ")}
