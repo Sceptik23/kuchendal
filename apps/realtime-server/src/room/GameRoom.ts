@@ -485,11 +485,13 @@ export class GameRoom {
     return this.auction;
   }
 
-  placeBid(playerId: string, amount: number): void {
+  placeBid(playerId: string, moneyCardIds: string[]): void {
     this.requireActionable();
     const state = this.requireAuction();
-    this.auction = engPlaceBid(state, playerId, amount);
+    const cards = this.resolveOffer(playerId, moneyCardIds);
+    this.auction = engPlaceBid(state, playerId, cards);
     this.statsTracker.onBid(playerId);
+    const amount = this.auction.highestBid!.amount;
     if (isBigBid(amount)) {
       this.emitNarratorEvent('bigBid', {
         player: this.findPlayer(playerId).name,
@@ -506,10 +508,13 @@ export class GameRoom {
     this.runBotLoop();
   }
 
-  sellerDecision(playerId: string, decision: SellerDecision): void {
+  sellerDecision(playerId: string, decision: SellerDecision, paymentCardIds?: string[]): void {
     this.requireActionable();
     this.requireActivePlayer(playerId);
-    const result = resolveAuction(this.requireAuction(), decision);
+    const auctionState = this.requireAuction();
+    const sellerPaymentCards =
+      decision === 'keep' && paymentCardIds ? this.resolveOffer(playerId, paymentCardIds) : undefined;
+    const result = resolveAuction(auctionState, decision, sellerPaymentCards);
     this.players = applyAuctionResult(this.players, result);
     this.statsTracker.onAuctionResolved(result, playerId, this.currentAuctionBidderIds);
     if (isDeckExhausted(this.deck)) {

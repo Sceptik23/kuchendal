@@ -9,6 +9,7 @@ import type {
 } from "@kuhhandel/shared-types";
 import { createSocketServer } from "../src/socketServer.js";
 import { RoomManager } from "../src/rooms/RoomManager.js";
+import { findMoneyCardId } from "./helpers/playToGameOver.js";
 
 type TypedClientSocket = ClientSocket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -94,10 +95,10 @@ describe("socket.io wiring — lobby and one full auction turn", () => {
 
     const afterReveal = waitForState(s2, (st) => st.auction !== null);
     s1.emit("turn:startAuction");
-    await afterReveal;
+    const revealedState = await afterReveal;
 
     const afterBid = waitForState(s1, (st) => st.auction?.highestBid?.amount === 10);
-    s2.emit("auction:bid", { amount: 10 });
+    s2.emit("auction:bid", { moneyCardIds: [findMoneyCardId(revealedState, p2, 10)] });
     await afterBid;
 
     const afterPass = waitForState(s1, (st) => st.auction?.status === "awaiting_seller_decision");

@@ -10,6 +10,7 @@ import type {
 } from '@kuhhandel/shared-types';
 import { createSocketServer } from '../src/socketServer.js';
 import { RoomManager } from '../src/rooms/RoomManager.js';
+import { findMoneyCardId } from './helpers/playToGameOver.js';
 
 /**
  * Species in 4-card blocks, unshuffled — mirrors
@@ -136,11 +137,12 @@ describe('scripted full game over WebSocket, no UI', () => {
       const passerSocket = sockets[others[1]!]!;
 
       const revealed = waitForState(passerSocket, (st) => st.auction !== null);
+      const revealedForBidder = waitForState(bidderSocket, (st) => st.auction !== null);
       activeSocket.emit('turn:startAuction');
-      await revealed;
+      const [, bidderState] = await Promise.all([revealed, revealedForBidder]);
 
       const bid = waitForState(activeSocket, (st) => st.auction?.highestBid?.amount === 10);
-      bidderSocket.emit('auction:bid', { amount: 10 });
+      bidderSocket.emit('auction:bid', { moneyCardIds: [findMoneyCardId(bidderState, others[0]!, 10)] });
       await bid;
 
       const passed = waitForState(

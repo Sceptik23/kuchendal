@@ -80,9 +80,9 @@ export interface ClientToServerEvents {
   "host:addBot": (payload?: { difficulty?: BotDifficulty }) => void;
   "turn:startAuction": () => void;
   "turn:startKuhhandel": (payload: { targetId: string; species: string }) => void;
-  "auction:bid": (payload: { amount: number }) => void;
+  "auction:bid": (payload: { moneyCardIds: string[] }) => void;
   "auction:pass": () => void;
-  "auction:sellerDecision": (payload: { decision: "sell" | "keep" }) => void;
+  "auction:sellerDecision": (payload: { decision: "sell" | "keep"; paymentCardIds?: string[] }) => void;
   "kuhhandel:submitOffer": (payload: { moneyCardIds: string[] }) => void;
   "kuhhandel:accept": () => void;
   "kuhhandel:counter": (payload: { moneyCardIds: string[] }) => void;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { GameRoom } from '../src/room/GameRoom.js';
-import { DEEP_BANKROLL, groupedDeckFactory, playAuctionOnlyThenConsolidate } from './helpers/playToGameOver.js';
+import {
+  DEEP_BANKROLL,
+  groupedDeckFactory,
+  moneyCardIdsFor,
+  playAuctionOnlyThenConsolidate,
+} from './helpers/playToGameOver.js';
 
 describe('GameRoom — lobby', () => {
   it('rejects joining once the room is full (MAX_PLAYERS)', () => {
@@ -61,7 +66,7 @@ describe('GameRoom — auction turn', () => {
     room.start();
 
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, 'sell');
 
@@ -80,7 +85,54 @@ describe('GameRoom — auction turn', () => {
 
     room.startAuction(p1);
 
-    expect(() => room.placeBid(p1, 10)).toThrow();
+    expect(() => room.placeBid(p1, moneyCardIdsFor(room, p1, 10))).toThrow();
+  });
+
+  it('accepts a bid combined from multiple cards, and a keep payment combined from multiple cards', () => {
+    const room = new GameRoom(() => 0);
+    const p1 = room.join('p1');
+    const p2 = room.join('p2');
+    const p3 = room.join('p3');
+    room.start();
+
+    room.startAuction(p1);
+    // Starting money is 2×0, 4×10, 1×50 — combine two 10s for a bid no
+    // single starting card matches exactly.
+    const p2Money = room.getViewFor(p2).players.find((p) => p.id === p2)!.money!;
+    const twoTens = p2Money.filter((c) => c.value === 10).slice(0, 2).map((c) => c.id);
+    room.placeBid(p2, twoTens);
+    room.pass(p3);
+
+    const highestBid = room.getViewFor(p1).auction!.highestBid!;
+    expect(highestBid.amount).toBe(20);
+
+    const p1Money = room.getViewFor(p1).players.find((p) => p.id === p1)!.money!;
+    const p1TwoTens = p1Money.filter((c) => c.value === 10).slice(0, 2).map((c) => c.id);
+    room.sellerDecision(p1, 'keep', p1TwoTens);
+
+    const view = room.getViewFor(p1);
+    expect(view.players.find((p) => p.id === p1)!.animals).toHaveLength(1); // seller kept the card
+    // On 'keep' the bidder's committed bid cards are never actually
+    // transferred (no sale happened) — the bidder simply receives the
+    // seller's payment on top of their untouched hand.
+    expect(view.players.find((p) => p.id === p2)!.moneyCount).toBe(p2Money.length + p1TwoTens.length);
+  });
+
+  it('rejects a keep payment that does not sum to exactly the highest bid', () => {
+    const room = new GameRoom(() => 0);
+    const p1 = room.join('p1');
+    const p2 = room.join('p2');
+    const p3 = room.join('p3');
+    room.start();
+
+    room.startAuction(p1);
+    const p2Money = room.getViewFor(p2).players.find((p) => p.id === p2)!.money!;
+    room.placeBid(p2, [p2Money.find((c) => c.value === 50)!.id]);
+    room.pass(p3);
+
+    const p1Money = room.getViewFor(p1).players.find((p) => p.id === p1)!.money!;
+    const wrongCards = p1Money.filter((c) => c.value === 10).slice(0, 2).map((c) => c.id); // sums to 20, not 50
+    expect(() => room.sellerDecision(p1, 'keep', wrongCards)).toThrow(/exactly/i);
   });
 });
 
@@ -94,12 +146,12 @@ describe('GameRoom — Kuhhandel turn', () => {
 
     // Deck order for rng=()=>0 starts with three "coq" cards in a row.
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, 'sell'); // p2 now owns 1 coq
 
     room.startAuction(p2);
-    room.placeBid(p3, 10);
+    room.placeBid(p3, moneyCardIdsFor(room, p3, 10));
     room.pass(p1);
     room.sellerDecision(p2, 'sell'); // p3 now owns 1 coq
 
@@ -129,12 +181,12 @@ describe('GameRoom — Kuhhandel turn', () => {
     room.start();
 
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, 'sell');
 
     room.startAuction(p2);
-    room.placeBid(p3, 10);
+    room.placeBid(p3, moneyCardIdsFor(room, p3, 10));
     room.pass(p1);
     room.sellerDecision(p2, 'sell');
 

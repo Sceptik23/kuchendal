@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { GameRoom } from "../src/room/GameRoom.js";
 import type { GamePersistenceAdapter } from "../src/persistence/types.js";
-import { DEEP_BANKROLL, groupedDeckFactory, playAuctionOnlyThenConsolidate } from "./helpers/playToGameOver.js";
+import {
+  DEEP_BANKROLL,
+  groupedDeckFactory,
+  moneyCardIdsFor,
+  playAuctionOnlyThenConsolidate,
+} from "./helpers/playToGameOver.js";
 
 function fakeAdapter(): GamePersistenceAdapter & {
   createGame: ReturnType<typeof vi.fn>;
@@ -58,7 +63,7 @@ describe("GameRoom — persistence side channel", () => {
     await flushMicrotasks();
 
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, "sell");
     await flushMicrotasks();
@@ -80,7 +85,7 @@ describe("GameRoom — persistence side channel", () => {
     await flushMicrotasks();
 
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, "sell");
     await flushMicrotasks();
