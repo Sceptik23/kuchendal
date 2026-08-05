@@ -137,7 +137,43 @@ is local UI state only — nothing is emitted until the seller submits both
 `decision: 'keep'` and `paymentCardIds` together in one
 `auction:sellerDecision` call. No new wire/state field is needed for this.
 
-### 4. UI: multi-select bidding
+### 4. Bot-engine: bots also combine bills
+
+`packages/bot-engine/src/decisions.ts` currently self-restricts because of
+the exact limitation this spec removes — both `decideAuctionBid` and
+`decideSellerDecision` carry comments stating a bid/keep must match a
+single card the bot holds, "since the engine settles auction payments
+with a single matching card." Once the engine accepts combined cards
+(§1-2), these restrictions are stale and should be lifted so bots get the
+same capability as human players — otherwise bots remain artificially
+weaker, and the new payment path gets little test coverage from bot-heavy
+games (the common case per `runBotLoop`).
+
+`packages/bot-engine/src/money.ts` gains two helpers alongside the
+existing `selectCardsForAmount` (which stays as-is for Kuhhandel secret
+offers, an "approximate is fine" context — unaffected by this spec):
+
+- `selectCardsExceeding(hand, minAmount, maxAmount): MoneyCard[] | null` —
+  for bidding: greedily composes the largest sum from `hand` that is
+  `<= maxAmount`; returns it only if that sum is `> minAmount`, else
+  `null` (no raise possible within budget). Reuses the same greedy
+  largest-first approach as `selectCardsForAmount`.
+- `selectExactCards(hand, exactAmount): MoneyCard[] | null` — for "keep"
+  payments, which must sum to *exactly* the target (no change-making, per
+  Non-goals): a small bounded subset-sum search over the hand (hand size
+  per player is small — bounded by the shared 55-card bank — so a
+  straightforward recursive/memoized search is sufficient, no need for a
+  general large-scale subset-sum algorithm).
+
+`decideAuctionBid` calls `selectCardsExceeding` instead of scanning for a
+single matching denomination, and returns `MoneyCard[] | null` (cards, not
+a bare amount) — `GameRoom.runBotLoop` passes these `cardIds` straight
+into `placeBid` (§1), same shape as a human bid. `decideSellerDecision`
+calls `selectExactCards` to determine `canAffordToKeep` and, when it
+decides to keep, `GameRoom.runBotLoop` passes the returned cards'
+`cardIds` into `sellerDecision`'s `paymentCardIds` (§2).
+
+### 5. UI: multi-select bidding
 
 `apps/web/components/AuctionPanel.tsx`, for an active bidder who is not
 currently leading:
@@ -151,7 +187,7 @@ currently leading:
   `auction.highestBid?.amount ?? -1`.
 - "Passer" stays as today for a non-leading active bidder.
 
-### 5. UI: leading-bidder state
+### 6. UI: leading-bidder state
 
 Same file — when `auction.highestBid?.playerId === playerId`:
 
@@ -176,6 +212,17 @@ standard TDD for the engine changes:
   that don't sum to exactly `highestBid.amount` are rejected, a
   `paymentCardIds` referencing a card the seller doesn't hold throws.
 - No-bid path is unaffected (regression coverage).
+
+`packages/bot-engine` also has a real Vitest suite — TDD for the new
+helpers and updated decision functions:
+
+- `selectCardsExceeding`: composes a sum above a minimum within a budget;
+  returns `null` when no affordable raise exists.
+- `selectExactCards`: finds an exact-sum subset when one exists; returns
+  `null` when the hand cannot form the target exactly.
+- `decideAuctionBid`/`decideSellerDecision`: updated regression tests
+  (existing single-card-hand tests must keep passing) plus new cases
+  where only a multi-card combination reaches a valid bid/keep amount.
 
 `apps/web`/`packages/ui` have no test runner (unchanged from prior work)
 — verification is manual: place a combined bid, confirm it registers and
