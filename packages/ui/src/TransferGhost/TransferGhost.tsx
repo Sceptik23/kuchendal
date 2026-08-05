@@ -24,7 +24,10 @@ export interface TransferGhostProps {
 export function TransferGhost({ from, to, durationMs = 500, onDone, children }: TransferGhostProps) {
   const [animateIn, setAnimateIn] = useState(false);
   const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
+
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  }, [onDone]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setAnimateIn(true));

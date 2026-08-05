@@ -24,11 +24,17 @@ export function useFamilyGlow(state: GameStateView | null, playerId: string | nu
   const pulseTimersRef = useRef<Map<SpeciesKey, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
-    if (!state || !playerId) return;
-    const completions = detectFamilyCompletions(prevStateRef.current, state).filter(
+    if (!state) return;
+    const prevForDiff = prevStateRef.current;
+    // Update the snapshot unconditionally (before the playerId check) so the
+    // ref never falls behind while playerId is transiently null — otherwise
+    // a later diff against a stale/null snapshot could emit a burst of
+    // spurious pulses once playerId becomes available.
+    prevStateRef.current = state;
+    if (!playerId) return;
+    const completions = detectFamilyCompletions(prevForDiff, state).filter(
       (c) => c.playerId === playerId,
     );
-    prevStateRef.current = state;
     if (completions.length === 0) return;
 
     setPulsing((prev) => {

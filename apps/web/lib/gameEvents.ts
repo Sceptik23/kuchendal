@@ -1,8 +1,8 @@
 import type { GameStateView, SpeciesKey } from "@kuhhandel/shared-types";
 import { SPECIES_LABEL } from "./species";
 
-/** 07_AI... N/A here — the known golden-donkey bonus sequence (spec §1),
- * indexed by the reveal count *before* this payout (0 = first payout). */
+/** The known golden-donkey bonus sequence (spec §1), indexed by the reveal
+ * count *before* this payout (0 = first payout). */
 const DONKEY_BONUS_SEQUENCE = [50, 100, 200, 500];
 
 export type GameEventKind =
@@ -154,15 +154,32 @@ export function deriveGameEvents(prev: GameStateView | null, next: GameStateView
   if (!prev) return [];
   const events: GameEvent[] = [];
 
-  if (prev.auction && !next.auction) {
+  // See detectAnimalTransfers' comment on why this checks "the auction's
+  // card identity changed" rather than "next.auction === null": a bot that
+  // immediately chains into a new auction/Kuhhandel after winning never
+  // produces an intermediate null state for this client to observe.
+  if (prev.auction && (!next.auction || next.auction.card.id !== prev.auction.card.id)) {
     const { card, highestBid, sellerId } = prev.auction;
     const speciesLabel = SPECIES_LABEL[card.species];
     if (highestBid) {
       const buyerName = playerName(next, highestBid.playerId);
-      events.push({
-        kind: "auctionResolved",
-        text: `${buyerName} a remporté ${speciesLabel} pour ${highestBid.amount}`,
-      });
+      const sellerName = playerName(next, sellerId);
+      // The seller may have pre-empted the sale by choosing to keep the
+      // card and pay the highest bidder instead (resolveAuction's "keep"
+      // outcome) — determine who actually ended up with the card rather
+      // than assuming the highest bidder always wins it.
+      const newOwner = next.players.find((p) => p.animals.some((a) => a.id === card.id));
+      if (newOwner && newOwner.id === sellerId) {
+        events.push({
+          kind: "auctionResolved",
+          text: `${sellerName} a gardé ${speciesLabel} et a payé ${highestBid.amount} à ${buyerName}`,
+        });
+      } else {
+        events.push({
+          kind: "auctionResolved",
+          text: `${buyerName} a remporté ${speciesLabel} pour ${highestBid.amount}`,
+        });
+      }
     } else {
       const sellerName = playerName(next, sellerId);
       events.push({
@@ -172,7 +189,13 @@ export function deriveGameEvents(prev: GameStateView | null, next: GameStateView
     }
   }
 
-  if (prev.kuhhandel && !next.kuhhandel) {
+  if (
+    prev.kuhhandel &&
+    (!next.kuhhandel ||
+      next.kuhhandel.initiatorId !== prev.kuhhandel.initiatorId ||
+      next.kuhhandel.targetId !== prev.kuhhandel.targetId ||
+      next.kuhhandel.species !== prev.kuhhandel.species)
+  ) {
     const { initiatorId, targetId, species } = prev.kuhhandel;
     events.push({
       kind: "kuhhandelResolved",

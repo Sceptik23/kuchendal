@@ -179,13 +179,6 @@ export function GameTable() {
   const leave = useGameStore((s) => s.leave);
   const eventFeedEntries = useEventFeed(state);
   const familyGlow = useFamilyGlow(state, playerId);
-  const lastRevealedCardIdRef = useRef<string | null>(null);
-  const auctionCardId = state?.auction?.card.id ?? null;
-  const isFreshReveal = auctionCardId !== null && auctionCardId !== lastRevealedCardIdRef.current;
-
-  useEffect(() => {
-    lastRevealedCardIdRef.current = auctionCardId;
-  }, [auctionCardId]);
 
   const prevTransferStateRef = useRef<GameStateView | null>(null);
   const [animalGhosts, setAnimalGhosts] = useState<
@@ -338,12 +331,13 @@ export function GameTable() {
               <div className={styles.auctionStage}>
                 <div className={styles.auctionCard}>
                   <PlayingCard
+                    key={state.auction.card.id}
                     variant="animal"
                     label={SPECIES_LABEL[state.auction.card.species]}
                     value={SPECIES_FAMILY_VALUE[state.auction.card.species]}
                     imageSlot={SPECIES_IMAGE_SLOT[state.auction.card.species]}
                     accentColor={SPECIES_COLOR[state.auction.card.species]}
-                    revealing={isFreshReveal}
+                    revealing
                   />
                 </div>
                 <AuctionPanel />
