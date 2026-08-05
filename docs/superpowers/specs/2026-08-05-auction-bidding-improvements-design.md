@@ -78,16 +78,45 @@ independent design choice.
 `packages/game-engine/src/engine/applyResults.ts`:
 
 - `transferExactMoneyCard` (the single-card, exact-denomination lookup) is
-  replaced by a direct transfer of the winning bid's `cardIds` — the same
+  replaced by a direct transfer of specific `cardIds` — the same
   `transferMoneyCards(players, fromId, toId, cards)` helper already used
   by `applyKuhhandelResult`. `AuctionResult.payment` gains a `cards:
-  MoneyCard[]` field (populated from the winning `Bid.cardIds`) alongside
-  the existing `amount`, so `applyAuctionResult` no longer needs to search
-  the payer's hand at resolution time — it already knows exactly which
-  cards to move.
-- This fully removes the crash path: a bid is only ever accepted if its
-  cards genuinely belong to the bidder and sum to the bid amount, so
-  resolution can never fail to find a matching card.
+  MoneyCard[]` field alongside the existing `amount`, so
+  `applyAuctionResult` no longer needs to search the payer's hand at
+  resolution time — it already knows exactly which cards to move.
+- **Both payment directions need a card source, not just the buyer's
+  bid.** `resolveAuction`'s two payment-bearing outcomes pay in opposite
+  directions:
+  - **`sell`**: buyer pays seller `highestBid.amount` — the buyer already
+    selected `cardIds` at bid time (§1), so `payment.cards` is exactly
+    `highestBid`'s cards. No new selection needed.
+  - **`keep`**: the *seller* pays the buyer `highestBid.amount` out of
+    the seller's own hand — the seller never pre-selected any cards
+    (they don't know they'll keep until they decide). This is the exact
+    same "single exact-denomination card" limitation as the original bug,
+    just on the seller's side, and the spec's fix is incomplete if this
+    path isn't also addressed.
+- **Fix:** `resolveAuction`'s signature grows a `paymentCardIds?:
+  string[]` parameter, supplied by the seller only when `decision ===
+  'keep'` (mirrors `cardIds` on a bid). `GameRoom.sellerDecision` resolves
+  these to `MoneyCard[]` the same way `resolveOffer` already does, sums
+  them, and validates the sum equals `highestBid.amount` exactly before
+  calling into the engine — same validation shape as bid placement (§1),
+  just an exact-equality check instead of strict-increase.
+
+### 2b. UI: seller composes the "Garder" payment
+
+`apps/web/components/AuctionPanel.tsx`, for the seller once
+`awaitingSellerDecision` is true:
+
+- The seller's "Garder" action becomes a two-step reveal, not a single
+  button: clicking "Garder" opens the same `MoneyPicker`-style multi-select
+  (§4) scoped to the seller's own hand, with the running total shown
+  against the exact target (`highestBid.amount`). A confirm action is only
+  enabled when the total equals the target exactly (not "at least" — this
+  spec keeps the existing no-change-making rule from the Non-goals
+  section). "Vendre" is unaffected — it needs no payment composition from
+  the seller.
 
 ### 3. Wire type: `AuctionState.highestBid` gains `cardIds`
 
@@ -100,6 +129,13 @@ already fully public today (real Kuhhandel auctions are public — every
 player always knows the current highest bid). No new information is
 leaked; opponents already learn the amount, they just can't derive a
 value from an ID alone.
+
+### 3b. Wire type: no seller-payment state is exposed pre-decision
+
+The seller's in-progress payment selection (before they confirm "Garder")
+is local UI state only — nothing is emitted until the seller submits both
+`decision: 'keep'` and `paymentCardIds` together in one
+`auction:sellerDecision` call. No new wire/state field is needed for this.
 
 ### 4. UI: multi-select bidding
 
@@ -134,8 +170,12 @@ standard TDD for the engine changes:
   still enforced.
 - Bid referencing a card the player doesn't hold throws.
 - Resolution transfers exactly the winning bid's cards, for both single-
-  and multi-card winning bids.
-- No-bid / seller-keeps paths are unaffected (regression coverage).
+  and multi-card winning bids (`sell` decision).
+- `keep` decision: seller pays with a single card (regression), seller
+  pays with multiple combined cards (new), seller-supplied payment cards
+  that don't sum to exactly `highestBid.amount` are rejected, a
+  `paymentCardIds` referencing a card the seller doesn't hold throws.
+- No-bid path is unaffected (regression coverage).
 
 `apps/web`/`packages/ui` have no test runner (unchanged from prior work)
 — verification is manual: place a combined bid, confirm it registers and
