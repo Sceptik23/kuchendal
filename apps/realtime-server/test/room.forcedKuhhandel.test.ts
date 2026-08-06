@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { GameRoom } from '../src/room/GameRoom.js';
-import { DEEP_BANKROLL, groupedDeckFactory, playAuctionOnlyThenConsolidate } from './helpers/playToGameOver.js';
+import {
+  DEEP_BANKROLL,
+  groupedDeckFactory,
+  moneyCardIdsFor,
+  playAuctionOnlyThenConsolidate,
+} from './helpers/playToGameOver.js';
 
 /**
  * Design note: with a deterministic `deckFactory` handing out species in
@@ -69,7 +74,7 @@ describe('GameRoom — forced Kuhhandel phase and real end-game condition', () =
       const activeId = view.activePlayerId!;
       const others = view.players.map((p) => p.id).filter((id) => id !== activeId);
       room.startAuction(activeId);
-      room.placeBid(others[0]!, 10);
+      room.placeBid(others[0]!, moneyCardIdsFor(room, others[0]!, 10));
       room.pass(others[1]!);
       room.sellerDecision(activeId, 'sell');
       view = room.getViewFor(p0);
@@ -95,7 +100,7 @@ describe('GameRoom — forced Kuhhandel phase and real end-game condition', () =
       const activeId = view.activePlayerId!;
       const others = view.players.map((p) => p.id).filter((id) => id !== activeId);
       room.startAuction(activeId);
-      room.placeBid(others[0]!, 10);
+      room.placeBid(others[0]!, moneyCardIdsFor(room, others[0]!, 10));
       room.pass(others[1]!);
       room.sellerDecision(activeId, 'sell');
       view = room.getViewFor(p0);

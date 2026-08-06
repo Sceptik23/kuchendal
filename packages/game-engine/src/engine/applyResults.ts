@@ -12,37 +12,6 @@ function replacePlayer(players: Player[], updated: Player): Player[] {
   return players.map((p) => (p.id === updated.id ? updated : p));
 }
 
-/**
- * Moves a single money card of the exact given amount from payer to payee.
- * Simplification (Phase 1 scope): the engine does not simulate making
- * change for bids that don't match an exact denomination in hand — real
- * gameplay requires the payer to compose the amount from their cards,
- * which is a player/UI concern, not a core rule enforced here.
- */
-function transferExactMoneyCard(
-  players: Player[],
-  fromId: string,
-  toId: string,
-  amount: number,
-): Player[] {
-  const payer = findPlayer(players, fromId);
-  const payee = findPlayer(players, toId);
-  const cardIndex = payer.money.findIndex((card) => card.value === amount);
-  if (cardIndex === -1) {
-    throw new Error(
-      `Player ${fromId} has no single card worth exactly ${amount} to complete this payment.`,
-    );
-  }
-  const card = payer.money[cardIndex]!;
-
-  let next = replacePlayer(players, {
-    ...payer,
-    money: payer.money.filter((_, i) => i !== cardIndex),
-  });
-  next = replacePlayer(next, { ...payee, money: [...payee.money, card] });
-  return next;
-}
-
 function transferMoneyCards(
   players: Player[],
   fromId: string,
@@ -91,7 +60,7 @@ function transferAnimalCards(players: Player[], toId: string, cards: AnimalCard[
 export function applyAuctionResult(players: Player[], result: AuctionResult): Player[] {
   let next = transferAnimalCards(players, result.cardGoesTo, [result.card]);
   if (result.payment) {
-    next = transferExactMoneyCard(next, result.payment.from, result.payment.to, result.payment.amount);
+    next = transferMoneyCards(next, result.payment.from, result.payment.to, result.payment.cards);
   }
   return next;
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RARE_EVENTS } from "@kuhhandel/rare-events-engine";
 import { GameRoom } from "../src/room/GameRoom.js";
+import { moneyCardIdsFor } from "./helpers/playToGameOver.js";
 
 describe("GameRoom — rare events (07_META_GAME.md §6)", () => {
   it("surfaces a rare event on the feed after a turn ends, without touching scores", () => {
@@ -13,7 +14,7 @@ describe("GameRoom — rare events (07_META_GAME.md §6)", () => {
     room.start();
 
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, "sell");
 
@@ -32,7 +33,7 @@ describe("GameRoom — rare events (07_META_GAME.md §6)", () => {
     room.start();
 
     room.startAuction(p1);
-    room.placeBid(p2, 10);
+    room.placeBid(p2, moneyCardIdsFor(room, p2, 10));
     room.pass(p3);
     room.sellerDecision(p1, "sell");
 

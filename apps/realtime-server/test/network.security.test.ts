@@ -9,6 +9,7 @@ import type {
 } from '@kuhhandel/shared-types';
 import { createSocketServer } from '../src/socketServer.js';
 import { RoomManager } from '../src/rooms/RoomManager.js';
+import { findMoneyCardId } from './helpers/playToGameOver.js';
 
 type TypedClientSocket = ClientSocket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -91,8 +92,8 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
     // two quick auctions give p2 and p3 each one, making a Kuhhandel between
     // them legal on turn 3 (cf. room.test.ts for the derivation).
     s1.emit('turn:startAuction');
-    await waitForState(s2, (st) => st.auction !== null);
-    s2.emit('auction:bid', { amount: 10 });
+    const revealedForS2 = await waitForState(s2, (st) => st.auction !== null);
+    s2.emit('auction:bid', { moneyCardIds: [findMoneyCardId(revealedForS2, p2, 10)] });
     await waitForState(s1, (st) => st.auction?.highestBid?.amount === 10);
     s3.emit('auction:pass');
     await waitForState(s1, (st) => st.auction?.status === 'awaiting_seller_decision');
@@ -100,8 +101,8 @@ describe("critical: Kuhhandel secret offer never reaches an unauthorized client'
     await waitForState(s3, (st) => st.activePlayerId === p2);
 
     s2.emit('turn:startAuction');
-    await waitForState(s3, (st) => st.auction !== null);
-    s3.emit('auction:bid', { amount: 10 });
+    const revealedForS3 = await waitForState(s3, (st) => st.auction !== null);
+    s3.emit('auction:bid', { moneyCardIds: [findMoneyCardId(revealedForS3, p3, 10)] });
     await waitForState(s2, (st) => st.auction?.highestBid?.amount === 10);
     s1.emit('auction:pass');
     await waitForState(s2, (st) => st.auction?.status === 'awaiting_seller_decision');

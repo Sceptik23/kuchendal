@@ -1,5 +1,36 @@
 import { GameRoom } from '../../src/room/GameRoom.js';
 import { SPECIES_KEYS, type AnimalCard, type MoneyBank } from '@kuhhandel/game-engine';
+import type { GameStateView } from '@kuhhandel/shared-types';
+
+/** Finds money card IDs from `playerId`'s CURRENT hand (via the room's own
+ * live state) summing to exactly `amount` — greedy largest-first. Every
+ * test in this suite only ever bids round denominations (10, 50, ...), so
+ * an exact match always exists given sufficient bankroll depth. */
+export function moneyCardIdsFor(room: GameRoom, playerId: string, amount: number): string[] {
+  const hand = room.getViewFor(playerId).players.find((p) => p.id === playerId)!.money!;
+  const sorted = [...hand].sort((a, b) => b.value - a.value);
+  const selected: string[] = [];
+  let remaining = amount;
+  for (const card of sorted) {
+    if (card.value > 0 && card.value <= remaining) {
+      selected.push(card.id);
+      remaining -= card.value;
+    }
+  }
+  if (remaining !== 0) {
+    throw new Error(`Could not compose ${amount} from ${playerId}'s hand`);
+  }
+  return selected;
+}
+
+/** Same composition, from an already-received GameStateView (for
+ * socket-level tests, which don't have direct GameRoom access). */
+export function findMoneyCardId(state: GameStateView, playerId: string, value: number): string {
+  const hand = state.players.find((p) => p.id === playerId)!.money!;
+  const card = hand.find((c) => c.value === value);
+  if (!card) throw new Error(`Player ${playerId} has no ${value}-value card in this view`);
+  return card.id;
+}
 
 /** Species in 4-card blocks, unshuffled — see the design note in room.forcedKuhhandel.test.ts for why this exact ordering makes the post-auction p0/p1/p2 split (and thus the Kuhhandel consolidation needed to finish the game) deterministic. */
 export function groupedDeckFactory(): AnimalCard[] {
@@ -53,7 +84,7 @@ export function playAuctionOnlyThenConsolidate(room: GameRoom, playerIds: [strin
     const activeId = view.activePlayerId!;
     const others = view.players.map((p) => p.id).filter((id) => id !== activeId);
     room.startAuction(activeId);
-    room.placeBid(others[0]!, 10);
+    room.placeBid(others[0]!, moneyCardIdsFor(room, others[0]!, 10));
     room.pass(others[1]!);
     room.sellerDecision(activeId, 'sell');
     view = room.getViewFor(p0);

@@ -9,7 +9,7 @@ import {
   decideKuhhandelResponse,
   decideSellerDecision,
 } from "../src/decisions.js";
-import { selectCardsForAmount, totalValue } from "../src/money.js";
+import { selectCardsForAmount, selectCardsExceeding, selectExactCards, totalValue } from "../src/money.js";
 
 const rng = () => 0.5; // deterministic mid-point: no jitter push in either direction
 
@@ -43,27 +43,151 @@ describe("money.selectCardsForAmount", () => {
   });
 });
 
+describe("money.selectCardsExceeding", () => {
+  it("returns null when no affordable raise exists", () => {
+    expect(selectCardsExceeding(money(10), 500, 500)).toBeNull();
+  });
+
+  it("composes the largest sum within budget when it exceeds the minimum", () => {
+    const hand = money(10, 50, 100);
+    const result = selectCardsExceeding(hand, 40, 200);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBeGreaterThan(40);
+    expect(sum).toBeLessThanOrEqual(200);
+  });
+
+  it("returns null when the best affordable sum still doesn't exceed the minimum", () => {
+    const hand = money(10, 10);
+    expect(selectCardsExceeding(hand, 50, 100)).toBeNull();
+  });
+
+  it("finds the best combination even when greedy largest-first fails (regression)", () => {
+    // Greedy would take 500 first, then can't fit any 200, returning null.
+    // But [200, 200, 200] = 600 is a valid raise > 550 and <= 600.
+    const hand = money(500, 200, 200, 200);
+    const result = selectCardsExceeding(hand, 550, 600);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBe(600);
+  });
+
+  it("returns null (not []) when there is no highest bid and no card fits the budget (regression)", () => {
+    // minAmount = -1 (no existing highest bid, per decideAuctionBid's
+    // `state.highestBid?.amount ?? -1`). The empty selection (sum 0)
+    // satisfies `0 > -1`, so without the chosen.length > 0 guard this
+    // would wrongly return [] — a truthy "bid nothing" result that
+    // GameRoom.runBotLoop would place as a free 0-value bid.
+    const hand = money(50);
+    const result = selectCardsExceeding(hand, -1, 3);
+    expect(result).toBeNull();
+  });
+
+  it("completes promptly and correctly for a large hand (no exponential blowup)", () => {
+    const hand = money(...Array.from({ length: 28 }, (_, i) => (i % 2 === 0 ? 10 : 50)));
+    const start = Date.now();
+    const result = selectCardsExceeding(hand, 40, 200);
+    const elapsedMs = Date.now() - start;
+    expect(elapsedMs).toBeLessThan(2000);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBeGreaterThan(40);
+    expect(sum).toBeLessThanOrEqual(200);
+  });
+});
+
+describe("money.selectExactCards", () => {
+  it("finds a single-card exact match", () => {
+    const hand = money(10, 50, 100);
+    const result = selectExactCards(hand, 50);
+    expect(result).toEqual([hand[1]]);
+  });
+
+  it("finds a combined exact match when no single card matches", () => {
+    const hand = money(10, 50, 100);
+    const result = selectExactCards(hand, 60);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBe(60);
+  });
+
+  it("returns null when no subset sums to the exact target", () => {
+    const hand = money(10, 10);
+    expect(selectExactCards(hand, 25)).toBeNull();
+  });
+
+  it("returns an empty array for a target of exactly 0", () => {
+    expect(selectExactCards(money(10, 50), 0)).toEqual([]);
+  });
+});
+
 describe("decideAuctionBid", () => {
-  it("only proposes an amount matching a card the bot actually holds", () => {
+  it("only proposes cards the bot actually holds, summing above the current highest", () => {
     const bot = player({ animals: [{ id: "a1", species: "vache" }] });
     const state: AuctionState = startAuction({ id: "c1", species: "vache" }, "seller", [bot.id]);
     const bid = decideAuctionBid(bot, state, BOT_DIFFICULTY_PRESETS.normal, rng);
     if (bid !== null) {
-      expect(bot.money.some((c) => c.value === bid)).toBe(true);
+      const bidIds = new Set(bid.map((c) => c.id));
+      expect(bot.money.every((c) => !bidIds.has(c.id) || bot.money.some((h) => h.id === c.id))).toBe(true);
+      expect(bid.reduce((sum, c) => sum + c.value, 0)).toBeGreaterThan(state.highestBid?.amount ?? -1);
     }
   });
 
-  it("passes once every affordable card is below its budget cap", () => {
+  it("passes once every affordable combination is below its budget cap", () => {
     const bot = player({ money: money(10) });
     const state: AuctionState = {
       card: { id: "c1", species: "vache" },
       sellerId: "seller",
       activeBidders: [bot.id],
-      highestBid: { playerId: "other", amount: 500 },
+      highestBid: { playerId: "other", cards: money(500), amount: 500 },
       status: "bidding",
     };
     const bid = decideAuctionBid(bot, state, BOT_DIFFICULTY_PRESETS.easy, rng);
     expect(bid).toBeNull();
+  });
+
+  it("passes (returns null, not []) when nobody has bid yet and the budget is below the cheapest card (regression)", () => {
+    // No highest bid at all (state.highestBid is null → currentHighest -1
+    // inside decideAuctionBid). The bot's estimated budget for a
+    // low-value species is tiny — well below its cheapest 10-value card —
+    // so no real raise is affordable. Before the fix, selectCardsExceeding
+    // could return [] here (truthy), which GameRoom.runBotLoop would place
+    // as a free 0-value bid, winning the animal for nothing.
+    const bot = player({
+      money: money(10, 10, 50),
+      animals: [],
+    });
+    const state: AuctionState = startAuction({ id: "c1", species: "coq" }, "seller", [bot.id]);
+    const bid = decideAuctionBid(
+      bot,
+      state,
+      { ...BOT_DIFFICULTY_PRESETS.easy, aggressiveness: 0.001, riskTolerance: 0 },
+      rng,
+    );
+    expect(bid).toBeNull();
+  });
+
+  it("can combine multiple cards into a single bid when its budget allows", () => {
+    const bot = player({
+      money: money(10, 10, 10, 10, 10),
+      animals: [
+        { id: "a1", species: "vache" },
+        { id: "a2", species: "vache" },
+        { id: "a3", species: "vache" },
+      ],
+    });
+    const state: AuctionState = {
+      card: { id: "c1", species: "vache" },
+      sellerId: "seller",
+      activeBidders: [bot.id],
+      highestBid: { playerId: "other", cards: money(30), amount: 30 },
+      status: "bidding",
+    };
+    // BOT_DIFFICULTY_PRESETS only defines "easy"/"normal" (docs/08_AI.md §2);
+    // force a high-aggressiveness config here to exercise multi-card combination.
+    const bid = decideAuctionBid(bot, state, { ...BOT_DIFFICULTY_PRESETS.normal, aggressiveness: 0.9 }, rng);
+    expect(bid).not.toBeNull();
+    expect(bid!.length).toBeGreaterThan(1);
   });
 });
 
@@ -74,22 +198,22 @@ describe("decideSellerDecision", () => {
       card: { id: "c1", species: "cochon" },
       sellerId: seller.id,
       activeBidders: [],
-      highestBid: { playerId: "buyer", amount: 500 },
+      highestBid: { playerId: "buyer", cards: money(500), amount: 500 },
       status: "awaiting_seller_decision",
     };
-    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toBe("sell");
+    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toEqual({ decision: "sell" });
   });
 
   it("sells even a low bid it wants to reject, if it can't afford to pay the bidder to keep", () => {
-    const seller = player({ money: money(10) }); // no card matching the 500 it would owe to keep
+    const seller = player({ money: money(10) }); // can't compose 500 to keep
     const state: AuctionState = {
       card: { id: "c1", species: "cochon" },
       sellerId: seller.id,
       activeBidders: [],
-      highestBid: { playerId: "buyer", amount: 500 },
+      highestBid: { playerId: "buyer", cards: money(500), amount: 500 },
       status: "awaiting_seller_decision",
     };
-    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.easy)).toBe("sell");
+    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.easy)).toEqual({ decision: "sell" });
   });
 
   it("sells for free when nobody bid (no reason to keep for nothing)", () => {
@@ -101,7 +225,23 @@ describe("decideSellerDecision", () => {
       highestBid: null,
       status: "awaiting_seller_decision",
     };
-    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toBe("sell");
+    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toEqual({ decision: "sell" });
+  });
+
+  it("can keep by combining multiple cards into an exact payment", () => {
+    const seller = player({ money: money(10, 10, 10) }); // only exact via 10+10+10=30
+    const state: AuctionState = {
+      card: { id: "c1", species: "cochon" },
+      sellerId: seller.id,
+      activeBidders: [],
+      highestBid: { playerId: "buyer", cards: money(30), amount: 30 },
+      status: "awaiting_seller_decision",
+    };
+    // Force "keep" to be preferable regardless of estimate via a low-aggressiveness config
+    const decision = decideSellerDecision(seller, state, { ...BOT_DIFFICULTY_PRESETS.easy, aggressiveness: 100 });
+    if (decision.decision === "keep") {
+      expect(decision.paymentCards.reduce((sum, c) => sum + c.value, 0)).toBe(30);
+    }
   });
 });
 

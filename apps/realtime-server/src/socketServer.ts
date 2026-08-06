@@ -136,16 +136,16 @@ export function createSocketServer(
       );
     });
 
-    socket.on("auction:bid", ({ amount }) => {
-      runAction(socket, (room, info) => room.placeBid(info.playerId, amount));
+    socket.on("auction:bid", ({ moneyCardIds }) => {
+      runAction(socket, (room, info) => room.placeBid(info.playerId, moneyCardIds));
     });
 
     socket.on("auction:pass", () => {
       runAction(socket, (room, info) => room.pass(info.playerId));
     });
 
-    socket.on("auction:sellerDecision", ({ decision }) => {
-      runAction(socket, (room, info) => room.sellerDecision(info.playerId, decision));
+    socket.on("auction:sellerDecision", ({ decision, paymentCardIds }) => {
+      runAction(socket, (room, info) => room.sellerDecision(info.playerId, decision, paymentCardIds));
     });
 
     socket.on("kuhhandel:submitOffer", ({ moneyCardIds }) => {

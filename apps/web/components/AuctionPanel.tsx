@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { Button, PlayingCard } from "@kuhhandel/ui";
@@ -10,14 +11,60 @@ import styles from "./AuctionPanel.module.css";
 export function AuctionPanel() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
+  const [selectedBidIds, setSelectedBidIds] = useState<string[]>([]);
+  const [composingKeep, setComposingKeep] = useState(false);
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
   const auction = state?.auction;
   if (!auction || !playerId) return null;
 
   const isSeller = auction.sellerId === playerId;
   const isActiveBidder = auction.activeBidders.includes(playerId);
+  const isLeading = auction.highestBid?.playerId === playerId;
   const awaitingSellerDecision = auction.status === "awaiting_seller_decision";
   const myMoney = state!.players.find((p) => p.id === playerId)?.money ?? [];
   const currentHighest = auction.highestBid?.amount ?? -1;
+  const selectedTotal = myMoney
+    .filter((c) => selectedBidIds.includes(c.id))
+    .reduce((sum, c) => sum + c.value, 0);
+
+  const selectedPaymentTotal = myMoney
+    .filter((c) => selectedPaymentIds.includes(c.id))
+    .reduce((sum, c) => sum + c.value, 0);
+
+  function toggleBidCard(cardId: string) {
+    setSelectedBidIds((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+    );
+  }
+
+  function submitBid() {
+    getSocket().emit("auction:bid", { moneyCardIds: selectedBidIds });
+    setSelectedBidIds([]);
+  }
+
+  function togglePaymentCard(cardId: string) {
+    setSelectedPaymentIds((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+    );
+  }
+
+  function confirmKeep() {
+    getSocket().emit("auction:sellerDecision", { decision: "keep", paymentCardIds: selectedPaymentIds });
+    setComposingKeep(false);
+    setSelectedPaymentIds([]);
+  }
+
+  function handleKeepClick() {
+    // No bid at all: the no-bid resolution path never charges the seller
+    // anything (payment stays null regardless of decision), so there's
+    // nothing to compose — entering the payment composer here would show
+    // an unsatisfiable "sum to exactly -1" target with no way to confirm.
+    if (!auction!.highestBid) {
+      getSocket().emit("auction:sellerDecision", { decision: "keep" });
+      return;
+    }
+    setComposingKeep(true);
+  }
 
   return (
     <div className={styles.panel}>
@@ -33,25 +80,33 @@ export function AuctionPanel() {
           ` (${state!.players.find((p) => p.id === auction.highestBid!.playerId)?.name ?? "?"})`}
       </p>
 
-      {!isSeller && !awaitingSellerDecision && isActiveBidder && (
+      {isLeading && !awaitingSellerDecision && (
+        <p className={styles.leadingState}>
+          Vous menez l'enchère à {currentHighest} — en attente des autres joueurs.
+        </p>
+      )}
+
+      {!isSeller && !isLeading && !awaitingSellerDecision && isActiveBidder && (
         <div>
-          {/* Bids are cards from your own hand — known with certainty, cf.
-              05_UI_UX.md §4 — not an arbitrary typed amount you might not
-              actually hold. */}
-          <p className={styles.handLabel}>Ta main (montants réels que tu peux miser) :</p>
+          {/* Bids are combined from cards in your own hand — known with
+              certainty, cf. 05_UI_UX.md §4 — not an arbitrary typed
+              amount you might not actually hold. */}
+          <p className={styles.handLabel}>
+            Ta main — sélectionne un ou plusieurs billets (total : {selectedTotal}) :
+          </p>
           <div className={styles.bidRow}>
             {myMoney.map((card) => {
-              const disabled = card.value <= currentHighest;
+              const isSelected = selectedBidIds.includes(card.id);
               return (
                 <button
                   key={card.id}
                   type="button"
                   ref={(el) => registerCardPosition(card.id, el)}
-                  className={[styles.bidCard, disabled ? styles.bidCardDisabled : ""]
+                  className={[styles.bidCard, isSelected ? styles.bidCardSelected : ""]
                     .filter(Boolean)
                     .join(" ")}
-                  disabled={disabled}
-                  onClick={() => getSocket().emit("auction:bid", { amount: card.value })}
+                  aria-pressed={isSelected}
+                  onClick={() => toggleBidCard(card.id)}
                 >
                   <PlayingCard
                     variant="money"
@@ -64,13 +119,22 @@ export function AuctionPanel() {
               );
             })}
           </div>
-          <Button variant="secondary" onClick={() => getSocket().emit("auction:pass")}>
-            Passer
-          </Button>
+          <div className={styles.bidActions}>
+            <Button
+              variant="primary"
+              disabled={selectedTotal <= currentHighest}
+              onClick={submitBid}
+            >
+              Enchérir ({selectedTotal})
+            </Button>
+            <Button variant="secondary" onClick={() => getSocket().emit("auction:pass")}>
+              Passer
+            </Button>
+          </div>
         </div>
       )}
 
-      {isSeller && awaitingSellerDecision && (
+      {isSeller && awaitingSellerDecision && !composingKeep && (
         <div className={styles.sellerActions}>
           <Button
             variant="primary"
@@ -80,14 +144,61 @@ export function AuctionPanel() {
           </Button>
           <Button
             variant="secondary"
-            disabled={
-              auction.highestBid !== null && !myMoney.some((c) => c.value === auction.highestBid!.amount)
-            }
-            title="Garder l'animal t'oblige à payer l'enchérisseur ce montant exact — il te faut une carte de cette valeur."
-            onClick={() => getSocket().emit("auction:sellerDecision", { decision: "keep" })}
+            onClick={handleKeepClick}
           >
             Garder
           </Button>
+        </div>
+      )}
+
+      {isSeller && awaitingSellerDecision && composingKeep && (
+        <div>
+          <p className={styles.handLabel}>
+            Choisis des billets sommant exactement à {currentHighest} pour garder l'animal (total
+            sélectionné : {selectedPaymentTotal}) :
+          </p>
+          <div className={styles.bidRow}>
+            {myMoney.map((card) => {
+              const isSelected = selectedPaymentIds.includes(card.id);
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  className={[styles.bidCard, isSelected ? styles.bidCardSelected : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                  aria-pressed={isSelected}
+                  onClick={() => togglePaymentCard(card.id)}
+                >
+                  <PlayingCard
+                    variant="money"
+                    label={`Billet ${card.value}`}
+                    value={card.value}
+                    imageSlot={`bill-${card.value}`}
+                    accentColor="var(--kd-accent-yellow)"
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <div className={styles.bidActions}>
+            <Button
+              variant="primary"
+              disabled={selectedPaymentTotal !== currentHighest}
+              onClick={confirmKeep}
+            >
+              Confirmer ({selectedPaymentTotal} / {currentHighest})
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setComposingKeep(false);
+                setSelectedPaymentIds([]);
+              }}
+            >
+              Annuler
+            </Button>
+          </div>
         </div>
       )}
     </div>

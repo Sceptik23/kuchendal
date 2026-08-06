@@ -12,11 +12,10 @@ import { computeScore, isDeckExhausted, nextPlayerIndex } from '../src/scoring/s
 import type { AnimalCard, Player } from '../src/types.js';
 
 /**
- * The engine only moves exact-denomination cards (cf. applyResults.ts —
- * making change from mismatched bills is a player/UI decision, not a core
- * rule enforced by Phase 1). This test drives 40 auctions with the same
- * bid amount, so it needs a deep bankroll of that denomination to avoid
- * hitting that documented limitation; it is not testing the economy.
+ * 40 auctions with the same bid amount, so it needs a deep bankroll of
+ * that denomination to comfortably outlast the run without depending on
+ * change-making (still unsupported — every bid/keep payment here uses a
+ * single 10-value card, this test isn't exercising combined bids).
  */
 function makePlayersWithDeepBankroll(ids: string[]): Player[] {
   return ids.map((id) => ({
@@ -43,11 +42,16 @@ describe('full scripted game — auction-only playthrough to GAME_OVER', () => {
 
       let auctionState = startAuction(card, seller.id, bidders);
       const bidderId = bidders[0]!;
-      auctionState = placeBid(auctionState, bidderId, 10);
+      const bidderCard = players.find((p) => p.id === bidderId)!.money.find((c) => c.value === 10)!;
+      auctionState = placeBid(auctionState, bidderId, [bidderCard]);
       auctionState = pass(auctionState, bidders[1]!);
 
       const decision = cardsResolved % 5 === 0 ? 'keep' : 'sell';
-      const result = resolveAuction(auctionState, decision);
+      const sellerPaymentCards =
+        decision === 'keep'
+          ? [players.find((p) => p.id === seller.id)!.money.find((c) => c.value === 10)!]
+          : undefined;
+      const result = resolveAuction(auctionState, decision, sellerPaymentCards);
 
       players = applyAuctionResult(players, result);
 
