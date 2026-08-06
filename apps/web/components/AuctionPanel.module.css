@@ -71,9 +71,27 @@
   border-radius: var(--kd-radius-sm);
 }
 
-.bidCardDisabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.bidCardSelected {
+  outline: 3px solid var(--kd-accent-pink);
+  outline-offset: 2px;
+  box-shadow: 0 0 var(--kd-glow-radius-sm)
+    color-mix(in oklch, var(--kd-accent-pink) var(--kd-glow-strength), transparent);
+}
+
+.bidActions {
+  display: flex;
+  gap: var(--kd-space-3);
+}
+
+.leadingState {
+  margin: 0;
+  padding: var(--kd-space-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kd-text);
+  background: var(--kd-surface-alt);
+  border: 2px solid var(--kd-accent-green);
+  border-radius: var(--kd-radius-sm);
 }
 
 .sellerActions {

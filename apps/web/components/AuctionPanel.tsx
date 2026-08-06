@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useGameStore } from "../store/gameStore";
 import { getSocket } from "../lib/socket";
 import { Button, PlayingCard } from "@kuhhandel/ui";
@@ -10,14 +11,30 @@ import styles from "./AuctionPanel.module.css";
 export function AuctionPanel() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
+  const [selectedBidIds, setSelectedBidIds] = useState<string[]>([]);
   const auction = state?.auction;
   if (!auction || !playerId) return null;
 
   const isSeller = auction.sellerId === playerId;
   const isActiveBidder = auction.activeBidders.includes(playerId);
+  const isLeading = auction.highestBid?.playerId === playerId;
   const awaitingSellerDecision = auction.status === "awaiting_seller_decision";
   const myMoney = state!.players.find((p) => p.id === playerId)?.money ?? [];
   const currentHighest = auction.highestBid?.amount ?? -1;
+  const selectedTotal = myMoney
+    .filter((c) => selectedBidIds.includes(c.id))
+    .reduce((sum, c) => sum + c.value, 0);
+
+  function toggleBidCard(cardId: string) {
+    setSelectedBidIds((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+    );
+  }
+
+  function submitBid() {
+    getSocket().emit("auction:bid", { moneyCardIds: selectedBidIds });
+    setSelectedBidIds([]);
+  }
 
   return (
     <div className={styles.panel}>
@@ -33,25 +50,33 @@ export function AuctionPanel() {
           ` (${state!.players.find((p) => p.id === auction.highestBid!.playerId)?.name ?? "?"})`}
       </p>
 
-      {!isSeller && !awaitingSellerDecision && isActiveBidder && (
+      {isLeading && !awaitingSellerDecision && (
+        <p className={styles.leadingState}>
+          Vous menez l'enchère à {currentHighest} — en attente des autres joueurs.
+        </p>
+      )}
+
+      {!isSeller && !isLeading && !awaitingSellerDecision && isActiveBidder && (
         <div>
-          {/* Bids are cards from your own hand — known with certainty, cf.
-              05_UI_UX.md §4 — not an arbitrary typed amount you might not
-              actually hold. */}
-          <p className={styles.handLabel}>Ta main (montants réels que tu peux miser) :</p>
+          {/* Bids are combined from cards in your own hand — known with
+              certainty, cf. 05_UI_UX.md §4 — not an arbitrary typed
+              amount you might not actually hold. */}
+          <p className={styles.handLabel}>
+            Ta main — sélectionne un ou plusieurs billets (total : {selectedTotal}) :
+          </p>
           <div className={styles.bidRow}>
             {myMoney.map((card) => {
-              const disabled = card.value <= currentHighest;
+              const isSelected = selectedBidIds.includes(card.id);
               return (
                 <button
                   key={card.id}
                   type="button"
                   ref={(el) => registerCardPosition(card.id, el)}
-                  className={[styles.bidCard, disabled ? styles.bidCardDisabled : ""]
+                  className={[styles.bidCard, isSelected ? styles.bidCardSelected : ""]
                     .filter(Boolean)
                     .join(" ")}
-                  disabled={disabled}
-                  onClick={() => getSocket().emit("auction:bid", { amount: card.value })}
+                  aria-pressed={isSelected}
+                  onClick={() => toggleBidCard(card.id)}
                 >
                   <PlayingCard
                     variant="money"
@@ -64,9 +89,18 @@ export function AuctionPanel() {
               );
             })}
           </div>
-          <Button variant="secondary" onClick={() => getSocket().emit("auction:pass")}>
-            Passer
-          </Button>
+          <div className={styles.bidActions}>
+            <Button
+              variant="primary"
+              disabled={selectedTotal <= currentHighest}
+              onClick={submitBid}
+            >
+              Enchérir ({selectedTotal})
+            </Button>
+            <Button variant="secondary" onClick={() => getSocket().emit("auction:pass")}>
+              Passer
+            </Button>
+          </div>
         </div>
       )}
 
