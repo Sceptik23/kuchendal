@@ -61,6 +61,16 @@ describe("money.selectCardsExceeding", () => {
     const hand = money(10, 10);
     expect(selectCardsExceeding(hand, 50, 100)).toBeNull();
   });
+
+  it("finds the best combination even when greedy largest-first fails (regression)", () => {
+    // Greedy would take 500 first, then can't fit any 200, returning null.
+    // But [200, 200, 200] = 600 is a valid raise > 550 and <= 600.
+    const hand = money(500, 200, 200, 200);
+    const result = selectCardsExceeding(hand, 550, 600);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBe(600);
+  });
 });
 
 describe("money.selectExactCards", () => {

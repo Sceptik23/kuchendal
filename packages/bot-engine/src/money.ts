@@ -33,27 +33,37 @@ export function selectCardsForAmount(hand: MoneyCard[], targetAmount: number): M
 }
 
 /**
- * For bidding: greedily composes the largest sum from `hand` that is
+ * For bidding: finds the maximum achievable sum from `hand` that is
  * `<= maxAmount`, and returns it only if that sum exceeds `minAmount`
  * (a valid strictly-higher raise) — otherwise `null` (no raise possible
- * within budget). Bids don't need an exact target, unlike a "keep"
- * payment (see `selectExactCards`).
+ * within budget). Exhaustive search to avoid greedy failures (e.g., taking
+ * the largest card first can miss better combinations). Bids don't need an
+ * exact target, unlike a "keep" payment (see `selectExactCards`).
  */
 export function selectCardsExceeding(
   hand: MoneyCard[],
   minAmount: number,
   maxAmount: number,
 ): MoneyCard[] | null {
-  const sorted = [...hand].filter((c) => c.value > 0).sort((a, b) => b.value - a.value);
-  const selected: MoneyCard[] = [];
-  let sum = 0;
-  for (const card of sorted) {
-    if (sum + card.value <= maxAmount) {
-      selected.push(card);
-      sum += card.value;
+  const positive = hand.filter((c) => c.value > 0);
+  let best: MoneyCard[] | null = null;
+  let bestSum = -Infinity;
+
+  function search(index: number, chosen: MoneyCard[], sum: number): void {
+    if (sum > minAmount && sum > bestSum) {
+      bestSum = sum;
+      best = chosen;
     }
+    if (index >= positive.length || sum >= maxAmount) return;
+    const card = positive[index]!;
+    if (sum + card.value <= maxAmount) {
+      search(index + 1, [...chosen, card], sum + card.value);
+    }
+    search(index + 1, chosen, sum);
   }
-  return sum > minAmount ? selected : null;
+
+  search(0, [], 0);
+  return best;
 }
 
 /**
