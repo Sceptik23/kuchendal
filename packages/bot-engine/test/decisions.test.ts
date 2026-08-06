@@ -9,7 +9,7 @@ import {
   decideKuhhandelResponse,
   decideSellerDecision,
 } from "../src/decisions.js";
-import { selectCardsForAmount, totalValue } from "../src/money.js";
+import { selectCardsForAmount, selectCardsExceeding, selectExactCards, totalValue } from "../src/money.js";
 
 const rng = () => 0.5; // deterministic mid-point: no jitter push in either direction
 
@@ -40,6 +40,51 @@ describe("money.selectCardsForAmount", () => {
     const picked = selectCardsForAmount(hand, 1);
     expect(picked).toHaveLength(1);
     expect(picked[0]!.value).toBe(500);
+  });
+});
+
+describe("money.selectCardsExceeding", () => {
+  it("returns null when no affordable raise exists", () => {
+    expect(selectCardsExceeding(money(10), 500, 500)).toBeNull();
+  });
+
+  it("composes the largest sum within budget when it exceeds the minimum", () => {
+    const hand = money(10, 50, 100);
+    const result = selectCardsExceeding(hand, 40, 200);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBeGreaterThan(40);
+    expect(sum).toBeLessThanOrEqual(200);
+  });
+
+  it("returns null when the best affordable sum still doesn't exceed the minimum", () => {
+    const hand = money(10, 10);
+    expect(selectCardsExceeding(hand, 50, 100)).toBeNull();
+  });
+});
+
+describe("money.selectExactCards", () => {
+  it("finds a single-card exact match", () => {
+    const hand = money(10, 50, 100);
+    const result = selectExactCards(hand, 50);
+    expect(result).toEqual([hand[1]]);
+  });
+
+  it("finds a combined exact match when no single card matches", () => {
+    const hand = money(10, 50, 100);
+    const result = selectExactCards(hand, 60);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBe(60);
+  });
+
+  it("returns null when no subset sums to the exact target", () => {
+    const hand = money(10, 10);
+    expect(selectExactCards(hand, 25)).toBeNull();
+  });
+
+  it("returns an empty array for a target of exactly 0", () => {
+    expect(selectExactCards(money(10, 50), 0)).toEqual([]);
   });
 });
 

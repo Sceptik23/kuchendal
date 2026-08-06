@@ -31,3 +31,48 @@ export function selectCardsForAmount(hand: MoneyCard[], targetAmount: number): M
 
   return selected;
 }
+
+/**
+ * For bidding: greedily composes the largest sum from `hand` that is
+ * `<= maxAmount`, and returns it only if that sum exceeds `minAmount`
+ * (a valid strictly-higher raise) — otherwise `null` (no raise possible
+ * within budget). Bids don't need an exact target, unlike a "keep"
+ * payment (see `selectExactCards`).
+ */
+export function selectCardsExceeding(
+  hand: MoneyCard[],
+  minAmount: number,
+  maxAmount: number,
+): MoneyCard[] | null {
+  const sorted = [...hand].filter((c) => c.value > 0).sort((a, b) => b.value - a.value);
+  const selected: MoneyCard[] = [];
+  let sum = 0;
+  for (const card of sorted) {
+    if (sum + card.value <= maxAmount) {
+      selected.push(card);
+      sum += card.value;
+    }
+  }
+  return sum > minAmount ? selected : null;
+}
+
+/**
+ * For a "keep" payment: finds a subset of `hand` summing to *exactly*
+ * `exactAmount` (no change-making). Bounded recursive search — a
+ * player's hand is always small (drawn from the shared 55-card bank), so
+ * this is cheap despite the worst-case exponential shape.
+ */
+export function selectExactCards(hand: MoneyCard[], exactAmount: number): MoneyCard[] | null {
+  const positive = hand.filter((c) => c.value > 0);
+
+  function search(index: number, remaining: number): MoneyCard[] | null {
+    if (remaining === 0) return [];
+    if (remaining < 0 || index >= positive.length) return null;
+    const withCard = search(index + 1, remaining - positive[index]!.value);
+    if (withCard) return [positive[index]!, ...withCard];
+    return search(index + 1, remaining);
+  }
+
+  if (exactAmount === 0) return [];
+  return search(0, exactAmount);
+}
