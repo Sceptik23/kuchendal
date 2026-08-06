@@ -12,6 +12,8 @@ export function AuctionPanel() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
   const [selectedBidIds, setSelectedBidIds] = useState<string[]>([]);
+  const [composingKeep, setComposingKeep] = useState(false);
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
   const auction = state?.auction;
   if (!auction || !playerId) return null;
 
@@ -25,6 +27,10 @@ export function AuctionPanel() {
     .filter((c) => selectedBidIds.includes(c.id))
     .reduce((sum, c) => sum + c.value, 0);
 
+  const selectedPaymentTotal = myMoney
+    .filter((c) => selectedPaymentIds.includes(c.id))
+    .reduce((sum, c) => sum + c.value, 0);
+
   function toggleBidCard(cardId: string) {
     setSelectedBidIds((prev) =>
       prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
@@ -34,6 +40,18 @@ export function AuctionPanel() {
   function submitBid() {
     getSocket().emit("auction:bid", { moneyCardIds: selectedBidIds });
     setSelectedBidIds([]);
+  }
+
+  function togglePaymentCard(cardId: string) {
+    setSelectedPaymentIds((prev) =>
+      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId],
+    );
+  }
+
+  function confirmKeep() {
+    getSocket().emit("auction:sellerDecision", { decision: "keep", paymentCardIds: selectedPaymentIds });
+    setComposingKeep(false);
+    setSelectedPaymentIds([]);
   }
 
   return (
@@ -104,7 +122,7 @@ export function AuctionPanel() {
         </div>
       )}
 
-      {isSeller && awaitingSellerDecision && (
+      {isSeller && awaitingSellerDecision && !composingKeep && (
         <div className={styles.sellerActions}>
           <Button
             variant="primary"
@@ -114,14 +132,61 @@ export function AuctionPanel() {
           </Button>
           <Button
             variant="secondary"
-            disabled={
-              auction.highestBid !== null && !myMoney.some((c) => c.value === auction.highestBid!.amount)
-            }
-            title="Garder l'animal t'oblige à payer l'enchérisseur ce montant exact — il te faut une carte de cette valeur."
-            onClick={() => getSocket().emit("auction:sellerDecision", { decision: "keep" })}
+            onClick={() => setComposingKeep(true)}
           >
             Garder
           </Button>
+        </div>
+      )}
+
+      {isSeller && awaitingSellerDecision && composingKeep && (
+        <div>
+          <p className={styles.handLabel}>
+            Choisis des billets sommant exactement à {currentHighest} pour garder l'animal (total
+            sélectionné : {selectedPaymentTotal}) :
+          </p>
+          <div className={styles.bidRow}>
+            {myMoney.map((card) => {
+              const isSelected = selectedPaymentIds.includes(card.id);
+              return (
+                <button
+                  key={card.id}
+                  type="button"
+                  className={[styles.bidCard, isSelected ? styles.bidCardSelected : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                  aria-pressed={isSelected}
+                  onClick={() => togglePaymentCard(card.id)}
+                >
+                  <PlayingCard
+                    variant="money"
+                    label={`Billet ${card.value}`}
+                    value={card.value}
+                    imageSlot={`bill-${card.value}`}
+                    accentColor="var(--kd-accent-yellow)"
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <div className={styles.bidActions}>
+            <Button
+              variant="primary"
+              disabled={selectedPaymentTotal !== currentHighest}
+              onClick={confirmKeep}
+            >
+              Confirmer ({selectedPaymentTotal} / {currentHighest})
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setComposingKeep(false);
+                setSelectedPaymentIds([]);
+              }}
+            >
+              Annuler
+            </Button>
+          </div>
         </div>
       )}
     </div>
