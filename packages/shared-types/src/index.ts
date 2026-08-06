@@ -97,7 +97,7 @@ export interface ClientToServerEvents {
   "host:transfer": (payload: { playerId: string }) => void;
   "host:addBot": (payload?: { difficulty?: BotDifficulty }) => void;
   "turn:startAuction": () => void;
-  "turn:startKuhhandel": (payload: { targetId: string; species: string }) => void;
+  "turn:startKuhhandel": (payload: { targetId: string; species: string; cardCount?: 1 | 2 }) => void;
   "auction:bid": (payload: { moneyCardIds: string[] }) => void;
   "auction:pass": () => void;
   "auction:sellerDecision": (payload: { decision: "sell" | "keep"; paymentCardIds?: string[] }) => void;

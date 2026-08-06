@@ -68,6 +68,7 @@ export function KuhhandelInitiator() {
   const playerId = useGameStore((s) => s.playerId);
   const [targetId, setTargetId] = useState("");
   const [species, setSpecies] = useState("");
+  const [cardCount, setCardCount] = useState<1 | 2>(1);
   if (!state || !playerId) return null;
 
   const me = state.players.find((p) => p.id === playerId)!;
@@ -86,6 +87,10 @@ export function KuhhandelInitiator() {
   }
 
   const currentTarget = eligibleTargets.find((t) => t.player.id === targetId) ?? eligibleTargets[0]!;
+  const currentSpecies = species || currentTarget.sharedSpecies[0]!;
+  const myCount = me.animals.filter((a) => a.species === currentSpecies).length;
+  const targetCount = currentTarget.player.animals.filter((a) => a.species === currentSpecies).length;
+  const eligibleForTwo = myCount >= 2 && targetCount >= 2;
 
   return (
     <div className={gameTableStyles.kuhhandelInitiator}>
@@ -99,8 +104,11 @@ export function KuhhandelInitiator() {
           ))}
         </Select>
         <Select
-          value={species || currentTarget.sharedSpecies[0]}
-          onChange={(e) => setSpecies(e.target.value)}
+          value={currentSpecies}
+          onChange={(e) => {
+            setSpecies(e.target.value);
+            setCardCount(1);
+          }}
         >
           {[...new Set(currentTarget.sharedSpecies)].map((s) => (
             <option key={s} value={s}>
@@ -108,12 +116,22 @@ export function KuhhandelInitiator() {
             </option>
           ))}
         </Select>
+        {eligibleForTwo && (
+          <Select
+            value={String(cardCount)}
+            onChange={(e) => setCardCount(e.target.value === "2" ? 2 : 1)}
+          >
+            <option value="1">1 carte</option>
+            <option value="2">2 cartes (marchandage spécial)</option>
+          </Select>
+        )}
         <Button
           variant="secondary"
           onClick={() =>
             getSocket().emit("turn:startKuhhandel", {
               targetId: currentTarget.player.id,
-              species: species || currentTarget.sharedSpecies[0]!,
+              species: currentSpecies,
+              cardCount: eligibleForTwo ? cardCount : 1,
             })
           }
         >

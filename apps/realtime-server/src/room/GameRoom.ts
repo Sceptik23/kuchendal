@@ -533,7 +533,7 @@ export class GameRoom {
     this.runBotLoop();
   }
 
-  startKuhhandel(initiatorId: string, targetId: string, species: SpeciesKey): void {
+  startKuhhandel(initiatorId: string, targetId: string, species: SpeciesKey, cardCount?: 1 | 2): void {
     this.requireActionable();
     this.requireActivePlayer(initiatorId);
     if (this.auction || this.kuhhandel) {
@@ -544,7 +544,14 @@ export class GameRoom {
     if (!canInitiateKuhhandel(initiator.animals, target.animals, species)) {
       throw new Error('Both players must own at least one animal of that species.');
     }
-    this.kuhhandel = startKuhhandel(initiatorId, targetId, species, initiator.animals, target.animals);
+    this.kuhhandel = startKuhhandel(
+      initiatorId,
+      targetId,
+      species,
+      initiator.animals,
+      target.animals,
+      cardCount,
+    );
     this.runBotLoop();
   }
 

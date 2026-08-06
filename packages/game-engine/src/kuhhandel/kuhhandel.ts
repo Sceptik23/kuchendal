@@ -64,9 +64,22 @@ export function startKuhhandel(
   species: SpeciesKey,
   initiatorAnimals: AnimalCard[],
   targetAnimals: AnimalCard[],
+  /** Initiator's choice when eligible for the 2-card "marchandage spécial"
+   * (both hold ≥2). Omitted (bots) keeps the old auto-2-when-eligible
+   * behavior; a human initiator can explicitly request 1 even when
+   * eligible for 2, or request 2 (only honored if actually eligible). */
+  requestedCardCount?: 1 | 2,
 ): KuhhandelState {
   const ownedBy = (animals: AnimalCard[]) => animals.filter((a) => a.species === species).length;
-  const cardCount: 1 | 2 = ownedBy(initiatorAnimals) >= 2 && ownedBy(targetAnimals) >= 2 ? 2 : 1;
+  const eligibleForTwo = ownedBy(initiatorAnimals) >= 2 && ownedBy(targetAnimals) >= 2;
+  const cardCount: 1 | 2 =
+    requestedCardCount !== undefined
+      ? requestedCardCount === 2 && eligibleForTwo
+        ? 2
+        : 1
+      : eligibleForTwo
+        ? 2
+        : 1;
 
   return {
     initiatorId,

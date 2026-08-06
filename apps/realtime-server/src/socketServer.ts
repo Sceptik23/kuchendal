@@ -130,9 +130,9 @@ export function createSocketServer(
       runAction(socket, (room, info) => room.startAuction(info.playerId));
     });
 
-    socket.on("turn:startKuhhandel", ({ targetId, species }) => {
+    socket.on("turn:startKuhhandel", ({ targetId, species, cardCount }) => {
       runAction(socket, (room, info) =>
-        room.startKuhhandel(info.playerId, targetId, species as never),
+        room.startKuhhandel(info.playerId, targetId, species as never, cardCount),
       );
     });
 
