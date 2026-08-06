@@ -60,7 +60,7 @@ export function placeBid(state: AuctionState, playerId: string, cards: MoneyCard
   if (state.highestBid !== null && amount <= state.highestBid.amount) {
     throw new Error('Bid must be strictly higher than the current highest bid.');
   }
-  if (state.highestBid === null && amount < 0) {
+  if (state.highestBid === null && amount <= 0) {
     throw new Error('Bid must be strictly higher than the current highest bid.');
   }
 

@@ -49,6 +49,12 @@ describe('auction — bidding round', () => {
     expect(state.highestBid).toEqual({ playerId: 'p2', cards: combined, amount: 60 });
   });
 
+  it('rejects an empty-selection (zero-value) bid as the opening bid', () => {
+    const state = startAuction(card, 'seller', ['p1', 'p2']);
+
+    expect(() => placeBid(state, 'p1', [])).toThrow(/strictly higher/i);
+  });
+
   it('removes a player from active bidders once they pass, and they cannot bid again', () => {
     let state = startAuction(card, 'seller', ['p1', 'p2', 'p3']);
     state = pass(state, 'p1');
