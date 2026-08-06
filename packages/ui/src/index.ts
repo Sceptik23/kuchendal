@@ -12,6 +12,9 @@ export type { PlayerAvatarBadgeProps } from './PlayerAvatarBadge/PlayerAvatarBad
 export { PlayingCard } from './PlayingCard/PlayingCard';
 export type { PlayingCardProps, PlayingCardVariant } from './PlayingCard/PlayingCard';
 
+export { AnimalStack } from './AnimalStack/AnimalStack';
+export type { AnimalStackProps } from './AnimalStack/AnimalStack';
+
 export { ToastNarrator } from './ToastNarrator/ToastNarrator';
 export type { ToastNarratorProps } from './ToastNarrator/ToastNarrator';
 

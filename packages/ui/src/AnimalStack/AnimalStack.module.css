@@ -1,0 +1,47 @@
+.stack {
+  position: relative;
+  width: 84px;
+}
+
+.sm {
+  width: 52px;
+}
+
+.top {
+  position: relative;
+  z-index: 4;
+}
+
+.slice {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--kd-radius-md);
+  border: 3px solid var(--as-accent);
+  background: color-mix(in oklch, var(--as-accent) 35%, var(--kd-surface));
+  aspect-ratio: 5 / 7;
+  transform: translate(
+    calc(var(--as-depth) * 3px),
+    calc(var(--as-depth) * 4px)
+  );
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 5;
+  background: var(--as-accent);
+  color: var(--kd-bg);
+  font-family: var(--kd-font-display);
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--kd-surface);
+}
+
+.sm .badge {
+  font-size: 10px;
+  padding: 2px 5px;
+}

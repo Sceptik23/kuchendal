@@ -14,6 +14,7 @@ import {
 import { AuctionPanel } from "./AuctionPanel";
 import { KuhhandelInitiator, KuhhandelPanel } from "./KuhhandelPanel";
 import {
+  AnimalStack,
   Button,
   EventFeed,
   InfoStatusIcon,
@@ -28,6 +29,7 @@ import {
   type DistinctionEntry,
   type GameStateView,
   type RareEventEntry,
+  type SpeciesKey,
 } from "@kuhhandel/shared-types";
 import { SPECIES_COLOR, SPECIES_IMAGE_SLOT, SPECIES_LABEL } from "../lib/species";
 import { useEventFeed } from "../hooks/useEventFeed";
@@ -316,9 +318,23 @@ export function GameTable() {
                     <span>{p.moneyCount} carte(s) argent</span>
                   </div>
                   <div className={styles.opponentAnimals}>
-                    {Object.entries(familyCounts(p.animals))
-                      .map(([species, count]) => `${SPECIES_LABEL[species as keyof typeof SPECIES_LABEL] ?? species} x${count}`)
-                      .join(", ") || "aucun animal"}
+                    {Object.entries(familyCounts(p.animals)).length === 0 && (
+                      <span className={styles.opponentAnimalsEmpty}>Aucun animal</span>
+                    )}
+                    {Object.entries(familyCounts(p.animals)).map(([speciesKey, count]) => {
+                      const species = speciesKey as SpeciesKey;
+                      return (
+                        <AnimalStack
+                          key={species}
+                          size="sm"
+                          label={SPECIES_LABEL[species]}
+                          value={SPECIES_FAMILY_VALUE[species]}
+                          imageSlot={SPECIES_IMAGE_SLOT[species]}
+                          accentColor={SPECIES_COLOR[species]}
+                          count={count}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -386,23 +402,28 @@ export function GameTable() {
             {currentPlayer.animals.length === 0 && (
               <span className={styles.selfHandEmpty}>Aucun animal</span>
             )}
-            {currentPlayer.animals.map((a) => (
-              <div
-                key={a.id}
-                className={styles.selfHandCard}
-                ref={(el) => registerCardPosition(a.id, el)}
-              >
-                <PlayingCard
-                  variant="animal"
-                  label={SPECIES_LABEL[a.species]}
-                  value={SPECIES_FAMILY_VALUE[a.species]}
-                  imageSlot={SPECIES_IMAGE_SLOT[a.species]}
-                  accentColor={SPECIES_COLOR[a.species]}
-                  completed={familyGlow.isCompleted(a.species)}
-                  justCompleted={familyGlow.isJustCompleted(a.species)}
-                />
-              </div>
-            ))}
+            {Object.entries(familyCounts(currentPlayer.animals)).map(([speciesKey, count]) => {
+              const species = speciesKey as SpeciesKey;
+              const ids = currentPlayer.animals
+                .filter((a) => a.species === species)
+                .map((a) => a.id);
+              return (
+                <div key={species} className={styles.selfHandCard}>
+                  <AnimalStack
+                    rootRef={(el) => {
+                      for (const id of ids) registerCardPosition(id, el);
+                    }}
+                    label={SPECIES_LABEL[species]}
+                    value={SPECIES_FAMILY_VALUE[species]}
+                    imageSlot={SPECIES_IMAGE_SLOT[species]}
+                    accentColor={SPECIES_COLOR[species]}
+                    count={count}
+                    completed={familyGlow.isCompleted(species)}
+                    justCompleted={familyGlow.isJustCompleted(species)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
