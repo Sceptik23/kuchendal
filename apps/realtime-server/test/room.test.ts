@@ -134,6 +134,24 @@ describe('GameRoom — auction turn', () => {
     const wrongCards = p1Money.filter((c) => c.value === 10).slice(0, 2).map((c) => c.id); // sums to 20, not 50
     expect(() => room.sellerDecision(p1, 'keep', wrongCards)).toThrow(/exactly/i);
   });
+
+  it('rejects a bid that reuses the same money card ID more than once (resolveOffer dedup)', () => {
+    const room = new GameRoom(() => 0);
+    const p1 = room.join('p1');
+    const p2 = room.join('p2');
+    room.join('p3');
+    room.start();
+
+    room.startAuction(p1);
+    const p2Money = room.getViewFor(p2).players.find((p) => p.id === p2)!.money!;
+    const sameCardId = p2Money.find((c) => c.value === 10)!.id;
+
+    // A single 10-value card repeated 3x should not be treated as a bid of
+    // 30 — that would create money the bidder never actually holds.
+    expect(() => room.placeBid(p2, [sameCardId, sameCardId, sameCardId])).toThrow(
+      /cannot use the same money card/i,
+    );
+  });
 });
 
 describe('GameRoom — Kuhhandel turn', () => {

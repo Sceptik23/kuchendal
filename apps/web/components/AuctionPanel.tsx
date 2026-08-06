@@ -54,6 +54,18 @@ export function AuctionPanel() {
     setSelectedPaymentIds([]);
   }
 
+  function handleKeepClick() {
+    // No bid at all: the no-bid resolution path never charges the seller
+    // anything (payment stays null regardless of decision), so there's
+    // nothing to compose — entering the payment composer here would show
+    // an unsatisfiable "sum to exactly -1" target with no way to confirm.
+    if (!auction!.highestBid) {
+      getSocket().emit("auction:sellerDecision", { decision: "keep" });
+      return;
+    }
+    setComposingKeep(true);
+  }
+
   return (
     <div className={styles.panel}>
       <h3 className={styles.title}>Enchère — {SPECIES_LABEL[auction.card.species]}</h3>
@@ -132,7 +144,7 @@ export function AuctionPanel() {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => setComposingKeep(true)}
+            onClick={handleKeepClick}
           >
             Garder
           </Button>

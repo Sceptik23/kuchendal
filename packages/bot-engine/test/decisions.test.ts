@@ -71,6 +71,29 @@ describe("money.selectCardsExceeding", () => {
     const sum = result!.reduce((s, c) => s + c.value, 0);
     expect(sum).toBe(600);
   });
+
+  it("returns null (not []) when there is no highest bid and no card fits the budget (regression)", () => {
+    // minAmount = -1 (no existing highest bid, per decideAuctionBid's
+    // `state.highestBid?.amount ?? -1`). The empty selection (sum 0)
+    // satisfies `0 > -1`, so without the chosen.length > 0 guard this
+    // would wrongly return [] — a truthy "bid nothing" result that
+    // GameRoom.runBotLoop would place as a free 0-value bid.
+    const hand = money(50);
+    const result = selectCardsExceeding(hand, -1, 3);
+    expect(result).toBeNull();
+  });
+
+  it("completes promptly and correctly for a large hand (no exponential blowup)", () => {
+    const hand = money(...Array.from({ length: 28 }, (_, i) => (i % 2 === 0 ? 10 : 50)));
+    const start = Date.now();
+    const result = selectCardsExceeding(hand, 40, 200);
+    const elapsedMs = Date.now() - start;
+    expect(elapsedMs).toBeLessThan(2000);
+    expect(result).not.toBeNull();
+    const sum = result!.reduce((s, c) => s + c.value, 0);
+    expect(sum).toBeGreaterThan(40);
+    expect(sum).toBeLessThanOrEqual(200);
+  });
 });
 
 describe("money.selectExactCards", () => {
@@ -120,6 +143,27 @@ describe("decideAuctionBid", () => {
       status: "bidding",
     };
     const bid = decideAuctionBid(bot, state, BOT_DIFFICULTY_PRESETS.easy, rng);
+    expect(bid).toBeNull();
+  });
+
+  it("passes (returns null, not []) when nobody has bid yet and the budget is below the cheapest card (regression)", () => {
+    // No highest bid at all (state.highestBid is null → currentHighest -1
+    // inside decideAuctionBid). The bot's estimated budget for a
+    // low-value species is tiny — well below its cheapest 10-value card —
+    // so no real raise is affordable. Before the fix, selectCardsExceeding
+    // could return [] here (truthy), which GameRoom.runBotLoop would place
+    // as a free 0-value bid, winning the animal for nothing.
+    const bot = player({
+      money: money(10, 10, 50),
+      animals: [],
+    });
+    const state: AuctionState = startAuction({ id: "c1", species: "coq" }, "seller", [bot.id]);
+    const bid = decideAuctionBid(
+      bot,
+      state,
+      { ...BOT_DIFFICULTY_PRESETS.easy, aggressiveness: 0.001, riskTolerance: 0 },
+      rng,
+    );
     expect(bid).toBeNull();
   });
 

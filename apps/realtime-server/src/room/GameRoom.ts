@@ -36,7 +36,7 @@ import type {
   SellerDecision,
   SpeciesKey,
 } from '@kuhhandel/game-engine';
-import type { GameStateView, PlayerView, RoomStatus } from '@kuhhandel/shared-types';
+import type { AuctionStateView, GameStateView, PlayerView, RoomStatus } from '@kuhhandel/shared-types';
 import { NullPersistenceAdapter, type GamePersistenceAdapter } from '../persistence/types.js';
 import { GameStatsTracker } from './GameStatsTracker.js';
 import { awardGameProgress } from '../meta/awardGameProgress.js';
@@ -284,7 +284,10 @@ export class GameRoom {
         if (botBidder) {
           const bot = this.findPlayer(botBidder);
           const bid = decideAuctionBid(bot, state, this.botConfig(botBidder), this.rng);
-          if (bid === null) {
+          // Defense in depth: an empty array is truthy in JS, so treat it
+          // the same as `null` (pass) rather than letting it fall through
+          // to placeBid and produce a free 0-value bid.
+          if (bid === null || bid.length === 0) {
             this.pass(botBidder);
           } else {
             this.placeBid(botBidder, bid.map((c) => c.id));
@@ -557,6 +560,12 @@ export class GameRoom {
       if (!card) throw new Error(`Player ${playerId} does not hold money card ${id}.`);
       return card;
     });
+    const uniqueCount = new Set(cardIds).size;
+    if (uniqueCount !== cardIds.length) {
+      throw new Error(
+        `Player ${playerId} cannot use the same money card ${cardIds.length - uniqueCount} time(s) in one selection.`,
+      );
+    }
     return cards;
   }
 
@@ -640,6 +649,28 @@ export class GameRoom {
     this.runBotLoop();
   }
 
+  /**
+   * Redacts the highest bid's full `MoneyCard[]` (which carries `.value`)
+   * down to opaque `cardIds` before it reaches the wire — see
+   * `AuctionStateView` in @kuhhandel/shared-types for why. The engine's
+   * own `AuctionState` keeps the full `cards` array for its internal
+   * resolution logic (placeBid/resolveAuction); only this public
+   * projection needs redacting.
+   */
+  private getAuctionView(): AuctionStateView | null {
+    if (!this.auction) return null;
+    const { card, sellerId, activeBidders, highestBid, status } = this.auction;
+    return {
+      card,
+      sellerId,
+      activeBidders,
+      status,
+      highestBid: highestBid
+        ? { playerId: highestBid.playerId, cardIds: highestBid.cards.map((c) => c.id), amount: highestBid.amount }
+        : null,
+    };
+  }
+
   getViewFor(viewerId: string): GameStateView {
     const players: PlayerView[] = this.players.map((p) => ({
       id: p.id,
@@ -658,7 +689,7 @@ export class GameRoom {
       activePlayerId: this.status === 'in_progress' ? this.activePlayer.id : null,
       hostPlayerId: this.hostPlayerId,
       deckCount: this.deck.length,
-      auction: this.auction,
+      auction: this.getAuctionView(),
       kuhhandel: this.kuhhandel ? getKuhhandelPublicView(this.kuhhandel, viewerId) : null,
       narratorFeed: this.narratorFeed,
       distinctions: this.status === 'finished' ? this.finalDistinctions : [],

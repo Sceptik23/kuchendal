@@ -35,6 +35,24 @@ export interface PlayerView {
   isBot: boolean;
 }
 
+/**
+ * Wire-facing projection of the engine-internal `AuctionState`: the
+ * highest bid's full `MoneyCard[]` (which carries `.value`, i.e. exact
+ * denominations) is redacted down to opaque `cardIds`. The engine keeps
+ * the full `cards` array internally for resolution (transferring the
+ * actual cards), but every opponent seeing the full breakdown of a bid
+ * (e.g. "holds a 50 and two 10s") would leak information beyond the
+ * already-public bid amount — this game's Kuhhandel mechanic depends on
+ * hidden-money bluffing, so that's a real leak, not a cosmetic one.
+ */
+export interface AuctionStateView {
+  card: AuctionState['card'];
+  sellerId: string;
+  activeBidders: string[];
+  highestBid: { playerId: string; cardIds: string[]; amount: number } | null;
+  status: AuctionState['status'];
+}
+
 export interface GameStateView {
   status: RoomStatus;
   phase: GamePhase;
@@ -42,7 +60,7 @@ export interface GameStateView {
   activePlayerId: string | null;
   hostPlayerId: string | null;
   deckCount: number;
-  auction: AuctionState | null;
+  auction: AuctionStateView | null;
   kuhhandel: KuhhandelPublicView | null;
   /** Recent narrator comments (08_AI.md §1), most recent last. */
   narratorFeed: NarratorMessage[];
