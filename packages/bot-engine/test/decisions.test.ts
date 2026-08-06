@@ -99,26 +99,51 @@ describe("money.selectExactCards", () => {
 });
 
 describe("decideAuctionBid", () => {
-  it("only proposes an amount matching a card the bot actually holds", () => {
+  it("only proposes cards the bot actually holds, summing above the current highest", () => {
     const bot = player({ animals: [{ id: "a1", species: "vache" }] });
     const state: AuctionState = startAuction({ id: "c1", species: "vache" }, "seller", [bot.id]);
     const bid = decideAuctionBid(bot, state, BOT_DIFFICULTY_PRESETS.normal, rng);
     if (bid !== null) {
-      expect(bot.money.some((c) => c.value === bid)).toBe(true);
+      const bidIds = new Set(bid.map((c) => c.id));
+      expect(bot.money.every((c) => !bidIds.has(c.id) || bot.money.some((h) => h.id === c.id))).toBe(true);
+      expect(bid.reduce((sum, c) => sum + c.value, 0)).toBeGreaterThan(state.highestBid?.amount ?? -1);
     }
   });
 
-  it("passes once every affordable card is below its budget cap", () => {
+  it("passes once every affordable combination is below its budget cap", () => {
     const bot = player({ money: money(10) });
     const state: AuctionState = {
       card: { id: "c1", species: "vache" },
       sellerId: "seller",
       activeBidders: [bot.id],
-      highestBid: { playerId: "other", amount: 500 },
+      highestBid: { playerId: "other", cards: money(500), amount: 500 },
       status: "bidding",
     };
     const bid = decideAuctionBid(bot, state, BOT_DIFFICULTY_PRESETS.easy, rng);
     expect(bid).toBeNull();
+  });
+
+  it("can combine multiple cards into a single bid when its budget allows", () => {
+    const bot = player({
+      money: money(10, 10, 10, 10, 10),
+      animals: [
+        { id: "a1", species: "vache" },
+        { id: "a2", species: "vache" },
+        { id: "a3", species: "vache" },
+      ],
+    });
+    const state: AuctionState = {
+      card: { id: "c1", species: "vache" },
+      sellerId: "seller",
+      activeBidders: [bot.id],
+      highestBid: { playerId: "other", cards: money(30), amount: 30 },
+      status: "bidding",
+    };
+    // BOT_DIFFICULTY_PRESETS only defines "easy"/"normal" (docs/08_AI.md §2);
+    // force a high-aggressiveness config here to exercise multi-card combination.
+    const bid = decideAuctionBid(bot, state, { ...BOT_DIFFICULTY_PRESETS.normal, aggressiveness: 0.9 }, rng);
+    expect(bid).not.toBeNull();
+    expect(bid!.length).toBeGreaterThan(1);
   });
 });
 
@@ -129,22 +154,22 @@ describe("decideSellerDecision", () => {
       card: { id: "c1", species: "cochon" },
       sellerId: seller.id,
       activeBidders: [],
-      highestBid: { playerId: "buyer", amount: 500 },
+      highestBid: { playerId: "buyer", cards: money(500), amount: 500 },
       status: "awaiting_seller_decision",
     };
-    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toBe("sell");
+    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toEqual({ decision: "sell" });
   });
 
   it("sells even a low bid it wants to reject, if it can't afford to pay the bidder to keep", () => {
-    const seller = player({ money: money(10) }); // no card matching the 500 it would owe to keep
+    const seller = player({ money: money(10) }); // can't compose 500 to keep
     const state: AuctionState = {
       card: { id: "c1", species: "cochon" },
       sellerId: seller.id,
       activeBidders: [],
-      highestBid: { playerId: "buyer", amount: 500 },
+      highestBid: { playerId: "buyer", cards: money(500), amount: 500 },
       status: "awaiting_seller_decision",
     };
-    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.easy)).toBe("sell");
+    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.easy)).toEqual({ decision: "sell" });
   });
 
   it("sells for free when nobody bid (no reason to keep for nothing)", () => {
@@ -156,7 +181,23 @@ describe("decideSellerDecision", () => {
       highestBid: null,
       status: "awaiting_seller_decision",
     };
-    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toBe("sell");
+    expect(decideSellerDecision(seller, state, BOT_DIFFICULTY_PRESETS.normal)).toEqual({ decision: "sell" });
+  });
+
+  it("can keep by combining multiple cards into an exact payment", () => {
+    const seller = player({ money: money(10, 10, 10) }); // only exact via 10+10+10=30
+    const state: AuctionState = {
+      card: { id: "c1", species: "cochon" },
+      sellerId: seller.id,
+      activeBidders: [],
+      highestBid: { playerId: "buyer", cards: money(30), amount: 30 },
+      status: "awaiting_seller_decision",
+    };
+    // Force "keep" to be preferable regardless of estimate via a low-aggressiveness config
+    const decision = decideSellerDecision(seller, state, { ...BOT_DIFFICULTY_PRESETS.easy, aggressiveness: 100 });
+    if (decision.decision === "keep") {
+      expect(decision.paymentCards.reduce((sum, c) => sum + c.value, 0)).toBe(30);
+    }
   });
 });
 

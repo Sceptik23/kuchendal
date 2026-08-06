@@ -287,7 +287,7 @@ export class GameRoom {
           if (bid === null) {
             this.pass(botBidder);
           } else {
-            this.placeBid(botBidder, this.composeBidCardIds(bot.money, bid));
+            this.placeBid(botBidder, bid.map((c) => c.id));
           }
         }
         return;
@@ -295,11 +295,11 @@ export class GameRoom {
       if (state.status === 'awaiting_seller_decision' && this.botPlayerIds.has(state.sellerId)) {
         const seller = this.findPlayer(state.sellerId);
         const decision = decideSellerDecision(seller, state, this.botConfig(state.sellerId));
-        const paymentCardIds =
-          decision === 'keep'
-            ? this.composeBidCardIds(seller.money, state.highestBid!.amount)
-            : undefined;
-        this.sellerDecision(state.sellerId, decision, paymentCardIds);
+        this.sellerDecision(
+          state.sellerId,
+          decision.decision,
+          decision.decision === 'keep' ? decision.paymentCards.map((c) => c.id) : undefined,
+        );
       }
       return;
     }
@@ -487,27 +487,6 @@ export class GameRoom {
   private requireAuction(): AuctionState {
     if (!this.auction) throw new Error('No auction is currently in progress.');
     return this.auction;
-  }
-
-  /**
-   * Temporary shim: `decideAuctionBid`/`decideSellerDecision` (bot-engine)
-   * still work in bare amounts, not the `MoneyCard[]` compositions
-   * `placeBid`/`sellerDecision` now require. Superseded once bot-engine
-   * changes those to return card compositions directly — at that point
-   * this helper should be removed and its call sites simplified back to
-   * `cards.map((c) => c.id)`.
-   */
-  private composeBidCardIds(hand: MoneyCard[], amount: number): string[] {
-    const sorted = [...hand].sort((a, b) => b.value - a.value);
-    const selected: string[] = [];
-    let remaining = amount;
-    for (const card of sorted) {
-      if (card.value > 0 && card.value <= remaining) {
-        selected.push(card.id);
-        remaining -= card.value;
-      }
-    }
-    return selected;
   }
 
   placeBid(playerId: string, moneyCardIds: string[]): void {

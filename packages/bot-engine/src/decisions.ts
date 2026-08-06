@@ -10,7 +10,7 @@ import {
   type SpeciesKey,
 } from "@kuhhandel/game-engine";
 import type { BotConfig } from "./config.js";
-import { selectCardsForAmount, totalValue } from "./money.js";
+import { selectCardsExceeding, selectCardsForAmount, selectExactCards, totalValue } from "./money.js";
 
 function ownedCount(animals: AnimalCard[], species: SpeciesKey): number {
   return animals.filter((a) => a.species === species).length;
@@ -34,50 +34,47 @@ function jitter(amount: number, riskTolerance: number, rng: RandomSource): numbe
 }
 
 /**
- * Returns the next bid amount (or null to pass). A bid must be an exact
- * denomination the bot actually holds — the engine settles auction
- * payments with a single matching card (packages/game-engine/src/engine/
- * applyResults.ts), so a bot can never offer an amount it can't pay.
+ * Returns the cards to bid (or null to pass). Now that the engine accepts
+ * combined-card bids (packages/game-engine/src/engine/applyResults.ts no
+ * longer requires a single exact-denomination card), the bot composes its
+ * budget from as many cards as it needs, same capability a human player
+ * has via the multi-select bid UI.
  */
 export function decideAuctionBid(
   bot: Player,
   state: AuctionState,
   config: BotConfig,
   rng: RandomSource,
-): number | null {
+): MoneyCard[] | null {
   const estimate = estimatedCardValue(bot.animals, state.card.species);
   const cash = totalValue(bot.money);
   const budget = jitter(Math.min(estimate, cash * config.aggressiveness), config.riskTolerance, rng);
   const currentHighest = state.highestBid?.amount ?? -1;
 
-  const affordableRaises = bot.money
-    .map((c) => c.value)
-    // 0-value cards exist only to bluff in a secret Kuhhandel offer
-    // (money.config.ts) — never a meaningful real auction bid.
-    .filter((value) => value > 0 && value > currentHighest && value <= budget)
-    .sort((a, b) => a - b);
-
-  return affordableRaises[0] ?? null;
+  return selectCardsExceeding(bot.money, currentHighest, budget);
 }
+
+export type SellerAuctionDecision = { decision: "sell" } | { decision: "keep"; paymentCards: MoneyCard[] };
 
 /**
  * The seller sells whenever the highest bid clears their own estimate of
  * the card. "Keep" requires paying the bidder the bid amount out of the
- * seller's own hand (packages/game-engine/src/engine/applyResults.ts
- * settles both outcomes with a single exact-value card) — a bot can only
- * choose "keep" when it actually holds a matching card, otherwise it must
- * sell regardless of how the price compares to its estimate.
+ * seller's own hand — now via any combination of cards that sums exactly
+ * (packages/bot-engine/src/money.ts's selectExactCards), not just a
+ * single matching card.
  */
 export function decideSellerDecision(
   seller: Player,
   state: AuctionState,
   config: BotConfig,
-): "sell" | "keep" {
-  if (!state.highestBid) return "sell";
-  const canAffordToKeep = seller.money.some((c) => c.value === state.highestBid!.amount);
-  if (!canAffordToKeep) return "sell";
+): SellerAuctionDecision {
+  if (!state.highestBid) return { decision: "sell" };
+  const paymentCards = selectExactCards(seller.money, state.highestBid.amount);
+  if (!paymentCards) return { decision: "sell" };
   const estimate = estimatedCardValue(seller.animals, state.card.species);
-  return state.highestBid.amount >= estimate * config.aggressiveness ? "sell" : "keep";
+  return state.highestBid.amount >= estimate * config.aggressiveness
+    ? { decision: "sell" }
+    : { decision: "keep", paymentCards };
 }
 
 /**
