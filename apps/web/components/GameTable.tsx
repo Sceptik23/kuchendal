@@ -278,6 +278,14 @@ export function GameTable() {
           {state.players.find((p) => p.id === state.activePlayerId)?.name ?? "?"}
           {isMyTurn && " (toi)"}
         </div>
+        <button
+          type="button"
+          className={styles.resyncButton}
+          title="Si la partie semble bloquée, ça re-synchronise ton écran avec l'état réel du serveur."
+          onClick={() => getSocket().emit("state:resync")}
+        >
+          ↻ Actualiser
+        </button>
       </div>
 
       <div className={styles.table}>

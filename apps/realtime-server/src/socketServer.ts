@@ -56,15 +56,25 @@ export function createSocketServer(
   }
 
   function runAction(socket: AppSocket, action: (room: GameRoom, info: SocketInfo) => void): void {
+    let info: SocketInfo | undefined;
+    let room: GameRoom | undefined;
     try {
-      const info = getInfo(socket);
-      const room = roomManager.getRoom(info.roomCode);
+      info = getInfo(socket);
+      room = roomManager.getRoom(info.roomCode);
       if (!room) throw new Error("This room no longer exists.");
       action(room, info);
-      broadcastRoom(info.roomCode, room);
     } catch (error) {
       emitError(socket, error);
     }
+    // Broadcast even when `action` threw: a bot cascade triggered deep
+    // inside GameRoom (runBotLoop) can fail partway through, after some of
+    // its steps already mutated room state — skipping the broadcast in
+    // that case would leave every client's local state silently stuck on
+    // the last successful snapshot, with no visible error and no way to
+    // recover short of a full reload. Re-syncing everyone to the room's
+    // actual current state here is always safe (a no-op for a purely
+    // rejected action) and closes that desync class entirely.
+    if (info && room) broadcastRoom(info.roomCode, room);
   }
 
   io.on("connection", (socket: AppSocket) => {
@@ -104,6 +114,17 @@ export function createSocketServer(
 
     socket.on("lobby:start", () => {
       runAction(socket, (room) => room.start());
+    });
+
+    socket.on("state:resync", () => {
+      // Read-only: re-emits the current state for this socket without
+      // going through runAction/broadcastRoom (no mutation, no need to
+      // notify anyone else).
+      const info = socketInfoBySocketId.get(socket.id);
+      if (!info) return;
+      const room = roomManager.getRoom(info.roomCode);
+      if (!room) return;
+      socket.emit("state:update", room.getViewFor(info.playerId));
     });
 
     socket.on("host:kick", ({ playerId }) => {

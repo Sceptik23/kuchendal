@@ -282,27 +282,53 @@ export class GameRoom {
           (id) => this.botPlayerIds.has(id) && id !== state.highestBid?.playerId,
         );
         if (botBidder) {
-          const bot = this.findPlayer(botBidder);
-          const bid = decideAuctionBid(bot, state, this.botConfig(botBidder), this.rng);
-          // Defense in depth: an empty array is truthy in JS, so treat it
-          // the same as `null` (pass) rather than letting it fall through
-          // to placeBid and produce a free 0-value bid.
-          if (bid === null || bid.length === 0) {
+          try {
+            const bot = this.findPlayer(botBidder);
+            const bid = decideAuctionBid(bot, state, this.botConfig(botBidder), this.rng);
+            // Defense in depth: an empty array is truthy in JS, so treat it
+            // the same as `null` (pass) rather than letting it fall through
+            // to placeBid and produce a free 0-value bid.
+            if (bid === null || bid.length === 0) {
+              this.pass(botBidder);
+            } else {
+              this.placeBid(botBidder, bid.map((c) => c.id));
+            }
+          } catch (error) {
+            // A bot's decision (or the bid it produced) failing here must
+            // never leave the auction stuck in 'bidding' forever — every
+            // other player (seller included) has no action available
+            // until this round resolves. Falling back to a pass keeps the
+            // auction moving; the error is still logged for diagnosis.
+            console.error(
+              `[GameRoom] bot ${botBidder} failed to act on auction ${state.card.id}, passing instead:`,
+              error,
+            );
             this.pass(botBidder);
-          } else {
-            this.placeBid(botBidder, bid.map((c) => c.id));
           }
         }
         return;
       }
       if (state.status === 'awaiting_seller_decision' && this.botPlayerIds.has(state.sellerId)) {
-        const seller = this.findPlayer(state.sellerId);
-        const decision = decideSellerDecision(seller, state, this.botConfig(state.sellerId));
-        this.sellerDecision(
-          state.sellerId,
-          decision.decision,
-          decision.decision === 'keep' ? decision.paymentCards.map((c) => c.id) : undefined,
-        );
+        try {
+          const seller = this.findPlayer(state.sellerId);
+          const decision = decideSellerDecision(seller, state, this.botConfig(state.sellerId));
+          this.sellerDecision(
+            state.sellerId,
+            decision.decision,
+            decision.decision === 'keep' ? decision.paymentCards.map((c) => c.id) : undefined,
+          );
+        } catch (error) {
+          // Same reasoning as the bidding branch above: the winning bidder
+          // has no action available until the seller resolves this, so a
+          // failing bot-seller decision must not strand the auction —
+          // 'sell' is always legal here (highestBid is guaranteed non-null
+          // by the 'awaiting_seller_decision' status).
+          console.error(
+            `[GameRoom] bot seller ${state.sellerId} failed to decide on auction ${state.card.id}, selling instead:`,
+            error,
+          );
+          this.sellerDecision(state.sellerId, 'sell');
+        }
       }
       return;
     }

@@ -104,6 +104,10 @@ export interface ClientToServerEvents {
   "kuhhandel:submitOffer": (payload: { moneyCardIds: string[] }) => void;
   "kuhhandel:accept": () => void;
   "kuhhandel:counter": (payload: { moneyCardIds: string[] }) => void;
+  /** Re-requests a fresh `state:update` for the calling socket only — a
+   * manual recovery path if a client's view ever gets stuck (e.g. a missed
+   * broadcast). Read-only, no room mutation. */
+  "state:resync": () => void;
 }
 
 export interface ServerToClientEvents {

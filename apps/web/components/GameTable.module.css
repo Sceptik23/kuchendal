@@ -37,6 +37,23 @@
   color: var(--kd-text);
 }
 
+.resyncButton {
+  font-family: var(--kd-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--kd-text-muted);
+  background: none;
+  border: 1px solid var(--kd-border);
+  border-radius: var(--kd-radius-sm);
+  padding: var(--kd-space-1) var(--kd-space-2);
+  cursor: pointer;
+}
+
+.resyncButton:hover {
+  color: var(--kd-text);
+  border-color: var(--kd-text-muted);
+}
+
 .table {
   position: relative;
   flex: 1;
