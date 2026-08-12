@@ -17,6 +17,13 @@
   color: var(--kd-text);
 }
 
+.cardCountBadge {
+  font-family: var(--kd-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--kd-accent-yellow);
+}
+
 /* Two-tray "Challenger / Défenseur" visual language, adapted from the
    design reference — the countdown ring and reveal-flip animation are
    omitted since resolution is immediate (no timed-reveal phase in this

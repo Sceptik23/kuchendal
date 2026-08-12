@@ -165,15 +165,29 @@ export interface KuhhandelPublicView {
   initiatorId: string;
   targetId: string;
   species: SpeciesKey;
+  /** 1 or 2 animal cards changing hands — always public (unlike the money
+   * offer): both sides already know their own animal counts, and the
+   * target/bystanders need this to understand the stakes of the trade
+   * they're watching (05_UI_UX.md §4: never leave a visible-in-principle
+   * fact unrendered). */
+  cardCount: 1 | 2;
   stage: KuhhandelStage;
   initiatorOffer: MoneyCard[] | null;
+  /** Number of cards in the initiator's secret offer, visible to everyone
+   * once submitted even though the cards' values stay hidden from anyone
+   * but the initiator until reveal — same "count known, value hidden"
+   * pattern already used for opponents' money hands (PlayerView.moneyCount).
+   * Null until the offer is submitted. */
+  offerCardCount: number | null;
 }
 
 /**
  * Redacted view of the state for a given viewer — the initiator's secret
  * offer is never exposed to anyone but the initiator before resolution
  * (cf. 03_ARCHITECTURE.md §5: hidden information must never transit to a
- * client not entitled to see it, even in the raw payload).
+ * client not entitled to see it, even in the raw payload). Its *count* is
+ * a different matter: unlike the values, the number of cards offered is
+ * public information the whole table can see.
  */
 export function getPublicView(state: KuhhandelState, viewerId: string): KuhhandelPublicView {
   const canSeeOffer = viewerId === state.initiatorId;
@@ -181,7 +195,9 @@ export function getPublicView(state: KuhhandelState, viewerId: string): Kuhhande
     initiatorId: state.initiatorId,
     targetId: state.targetId,
     species: state.species,
+    cardCount: state.cardCount,
     stage: state.stage,
     initiatorOffer: canSeeOffer ? state.initiatorOffer : null,
+    offerCardCount: state.initiatorOffer ? state.initiatorOffer.length : null,
   };
 }

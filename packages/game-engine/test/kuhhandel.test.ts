@@ -37,6 +37,50 @@ describe('kuhhandel — secret offer & accept', () => {
     expect(initiatorView.initiatorOffer).not.toBeNull();
   });
 
+  it("exposes the secret offer's card COUNT to everyone even while the values stay hidden", () => {
+    let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
+
+    // Before the offer is submitted, the count is unknown to anyone.
+    expect(getPublicView(state, 'target').offerCardCount).toBeNull();
+    expect(getPublicView(state, 'bystander').offerCardCount).toBeNull();
+
+    state = submitInitiatorOffer(state, money(100, 50, 0));
+
+    // Count is now public — 3 cards — while the values remain hidden from
+    // everyone but the initiator.
+    const targetView = getPublicView(state, 'target');
+    expect(targetView.offerCardCount).toBe(3);
+    expect(targetView.initiatorOffer).toBeNull();
+
+    const bystanderView = getPublicView(state, 'bystander');
+    expect(bystanderView.offerCardCount).toBe(3);
+
+    const initiatorView = getPublicView(state, 'initiator');
+    expect(initiatorView.offerCardCount).toBe(3);
+    expect(initiatorView.initiatorOffer).toHaveLength(3);
+  });
+
+  it('exposes cardCount (1 or 2 animals changing hands) to every viewer, always', () => {
+    const bothOwnTwo = startKuhhandel(
+      'initiator',
+      'target',
+      'vache',
+      [vache, vache2],
+      [{ id: 'vache-1', species: 'vache' }, { id: 'vache-3', species: 'vache' }],
+    );
+    expect(getPublicView(bothOwnTwo, 'target').cardCount).toBe(2);
+    expect(getPublicView(bothOwnTwo, 'bystander').cardCount).toBe(2);
+
+    const onlyOneEach = startKuhhandel(
+      'initiator',
+      'target',
+      'vache',
+      [vache],
+      [{ id: 'vache-1', species: 'vache' }],
+    );
+    expect(getPublicView(onlyOneEach, 'target').cardCount).toBe(1);
+  });
+
   it('accept: target receives the offered money, initiator receives the animal', () => {
     let state = startKuhhandel('initiator', 'target', 'vache', [vache], [{ id: 'vache-1', species: 'vache' }]);
     state = submitInitiatorOffer(state, money(100, 50));

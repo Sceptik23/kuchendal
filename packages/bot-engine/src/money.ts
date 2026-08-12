@@ -1,4 +1,4 @@
-import type { MoneyCard } from "@kuhhandel/game-engine";
+import type { MoneyCard, RandomSource } from "@kuhhandel/game-engine";
 
 export function totalValue(cards: MoneyCard[]): number {
   return cards.reduce((sum, c) => sum + c.value, 0);
@@ -10,8 +10,22 @@ export function totalValue(cards: MoneyCard[]): number {
  * compose a bid amount or a secret Kuhhandel offer out of fixed
  * denominations (10/50/100/200/500, plus 0-value bluff cards) rather than
  * an arbitrary number a real player could type.
+ *
+ * `rng`, when supplied, enables bluff padding: the target's
+ * `offerCardCount` (packages/game-engine's `KuhhandelPublicView`) reveals
+ * the *number* of cards in a Kuhhandel offer before its value is known, so
+ * a bot that always uses the fewest possible (largest-denomination) cards
+ * would make "few cards" a reliable tell for "big offer". With a spare
+ * 0-value card in hand, there's a chance of tossing it into the selection
+ * — it changes the visible count without changing the offer's actual
+ * value. Omit `rng` for auction bids, where the full breakdown becomes
+ * visible the moment the bid lands anyway, so padding buys nothing.
  */
-export function selectCardsForAmount(hand: MoneyCard[], targetAmount: number): MoneyCard[] {
+export function selectCardsForAmount(
+  hand: MoneyCard[],
+  targetAmount: number,
+  rng?: RandomSource,
+): MoneyCard[] {
   const sorted = [...hand].sort((a, b) => b.value - a.value);
   const selected: MoneyCard[] = [];
   let remaining = Math.max(0, targetAmount);
@@ -27,6 +41,13 @@ export function selectCardsForAmount(hand: MoneyCard[], targetAmount: number): M
   if (selected.length === 0) {
     const smallest = sorted.filter((c) => c.value > 0).at(-1);
     if (smallest) selected.push(smallest);
+  }
+
+  if (rng) {
+    const unusedZeroCards = hand.filter((c) => c.value === 0 && !selected.includes(c));
+    if (unusedZeroCards.length > 0 && rng() < 0.4) {
+      selected.push(unusedZeroCards[Math.floor(rng() * unusedZeroCards.length)]!);
+    }
   }
 
   return selected;

@@ -41,6 +41,27 @@ describe("money.selectCardsForAmount", () => {
     expect(picked).toHaveLength(1);
     expect(picked[0]!.value).toBe(500);
   });
+
+  it("without rng, never pads with a 0-value bluff card (unchanged, deterministic behavior)", () => {
+    const hand = money(0, 0, 500);
+    const picked = selectCardsForAmount(hand, 500);
+    expect(picked.map((c) => c.value)).toEqual([500]);
+  });
+
+  it("with rng, sometimes pads the selection with a spare 0-value card without changing its total", () => {
+    const hand = money(0, 0, 500);
+    const alwaysPad = () => 0; // < 0.4 threshold every call
+    const picked = selectCardsForAmount(hand, 500, alwaysPad);
+    expect(picked.map((c) => c.value)).toEqual([500, 0]);
+    expect(totalValue(picked)).toBe(500); // count changed, value didn't
+  });
+
+  it("with rng, never pads when the hand has no unused 0-value card left", () => {
+    const hand = money(500);
+    const alwaysPad = () => 0;
+    const picked = selectCardsForAmount(hand, 500, alwaysPad);
+    expect(picked.map((c) => c.value)).toEqual([500]);
+  });
 });
 
 describe("money.selectCardsExceeding", () => {

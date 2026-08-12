@@ -115,7 +115,7 @@ export function decideKuhhandelOffer(
 ): MoneyCard[] {
   const cash = totalValue(bot.money);
   const target = jitter(cash * config.aggressiveness, config.riskTolerance, rng);
-  return selectCardsForAmount(bot.money, target);
+  return selectCardsForAmount(bot.money, target, rng);
 }
 
 /**

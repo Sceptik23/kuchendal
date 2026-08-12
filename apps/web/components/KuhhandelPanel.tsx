@@ -142,6 +142,10 @@ export function KuhhandelInitiator() {
   );
 }
 
+function offerCountLabel(count: number): string {
+  return `${count} billet${count > 1 ? "s" : ""}`;
+}
+
 export function KuhhandelPanel() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
@@ -150,15 +154,24 @@ export function KuhhandelPanel() {
 
   const isInitiator = kuhhandel.initiatorId === playerId;
   const isTarget = kuhhandel.targetId === playerId;
+  const isBystander = !isInitiator && !isTarget;
 
   const initiatorOfferTooltip =
     "Ton offre reste confidentielle jusqu'à la résolution — l'adversaire ne peut pas la voir.";
   const targetOfferTooltip =
-    "Le montant exact de l'offre de l'adversaire reste inconnu tant que tu n'as pas accepté ou fait une contre-offre.";
+    "Le montant exact de l'offre de l'adversaire reste inconnu tant que tu n'as pas accepté ou fait une contre-offre — mais le nombre de billets, lui, est visible.";
+
+  const initiatorName = state?.players.find((p) => p.id === kuhhandel.initiatorId)?.name ?? "?";
+  const targetName = state?.players.find((p) => p.id === kuhhandel.targetId)?.name ?? "?";
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.title}>Kuhhandel — {SPECIES_LABEL[kuhhandel.species]}</h3>
+      <h3 className={styles.title}>
+        Kuhhandel — {SPECIES_LABEL[kuhhandel.species]}
+        {kuhhandel.cardCount === 2 && (
+          <span className={styles.cardCountBadge}> · 2 cartes en jeu (marchandage spécial)</span>
+        )}
+      </h3>
 
       {isInitiator && kuhhandel.stage === "awaiting_initiator_offer" && (
         <MoneyPicker
@@ -200,7 +213,11 @@ export function KuhhandelPanel() {
             <p className={styles.trayLabelTarget}>Offre secrète reçue</p>
             <p className={styles.statusLine}>
               <InfoStatusIcon status="partial" label={targetOfferTooltip} />
-              <span>Montant inconnu tant que la résolution n'a pas eu lieu.</span>
+              <span>
+                {kuhhandel.offerCardCount !== null
+                  ? `${offerCountLabel(kuhhandel.offerCardCount)} proposés — montant inconnu.`
+                  : "Montant inconnu tant que la résolution n'a pas eu lieu."}
+              </span>
             </p>
           </div>
           <div className={styles.acceptRow}>
@@ -214,6 +231,21 @@ export function KuhhandelPanel() {
               getSocket().emit("kuhhandel:counter", { moneyCardIds: cardIds })
             }
           />
+        </div>
+      )}
+
+      {isBystander && (
+        <div className={styles.tray}>
+          <p className={styles.statusLine}>
+            <span>
+              {initiatorName} négocie avec {targetName}
+              {kuhhandel.stage === "awaiting_initiator_offer"
+                ? " — composition de l'offre secrète…"
+                : kuhhandel.offerCardCount !== null
+                  ? ` — offre de ${offerCountLabel(kuhhandel.offerCardCount)} envoyée, montant inconnu.`
+                  : " — en attente de l'offre…"}
+            </span>
+          </p>
         </div>
       )}
     </div>
