@@ -116,15 +116,23 @@ export function createSocketServer(
       runAction(socket, (room) => room.start());
     });
 
-    socket.on("state:resync", () => {
-      // Read-only: re-emits the current state for this socket without
-      // going through runAction/broadcastRoom (no mutation, no need to
-      // notify anyone else).
-      const info = socketInfoBySocketId.get(socket.id);
-      if (!info) return;
-      const room = roomManager.getRoom(info.roomCode);
-      if (!room) return;
-      socket.emit("state:update", room.getViewFor(info.playerId));
+    socket.on("state:resync", ({ roomCode, playerId }) => {
+      // Re-registers this socket.id -> {roomCode, playerId} unconditionally
+      // (cheap no-op if already registered, the actual fix if this socket
+      // reconnected under a new id and was never re-mapped — see the event
+      // doc comment in shared-types for why that matters) and re-emits the
+      // current state. Read-only otherwise: no room mutation, no broadcast
+      // to anyone else.
+      const room = roomManager.getRoom(roomCode);
+      if (!room || !room.hasPlayer(playerId)) {
+        // Stale/invalid session (room gone, or this playerId was never — or
+        // no longer is — part of it, e.g. kicked while disconnected): same
+        // "give up and return to the hub" signal already used elsewhere.
+        socket.emit("lobby:kicked");
+        return;
+      }
+      socketInfoBySocketId.set(socket.id, { roomCode, playerId });
+      socket.emit("state:update", room.getViewFor(playerId));
     });
 
     socket.on("host:kick", ({ playerId }) => {

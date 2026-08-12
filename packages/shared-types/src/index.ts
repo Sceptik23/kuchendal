@@ -104,10 +104,20 @@ export interface ClientToServerEvents {
   "kuhhandel:submitOffer": (payload: { moneyCardIds: string[] }) => void;
   "kuhhandel:accept": () => void;
   "kuhhandel:counter": (payload: { moneyCardIds: string[] }) => void;
-  /** Re-requests a fresh `state:update` for the calling socket only — a
-   * manual recovery path if a client's view ever gets stuck (e.g. a missed
-   * broadcast). Read-only, no room mutation. */
-  "state:resync": () => void;
+  /**
+   * Re-registers this socket against `roomCode`/`playerId` and re-requests
+   * a fresh `state:update`. Necessary, not just a nicety: socket.io issues
+   * a brand-new socket.id on every reconnect (WiFi blip, tab backgrounded,
+   * laptop sleep), and the server only maps playerId -> socket.id per
+   * connection — a reconnected socket that never re-sends this is
+   * invisible to the room forever after, silently missing every future
+   * broadcast (including the results of its own subsequent actions) with
+   * no error shown, which reads to the player as "the bots stopped
+   * reacting". Read-only otherwise, no room mutation. Both an automatic
+   * call on socket reconnect and the manual "↻ Actualiser" button use
+   * this same event.
+   */
+  "state:resync": (payload: { roomCode: string; playerId: string }) => void;
 }
 
 export interface ServerToClientEvents {

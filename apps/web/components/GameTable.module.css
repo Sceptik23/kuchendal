@@ -284,14 +284,16 @@
   }
 }
 
+/* Anchored to a top corner, well clear of the fixed self-rail and the
+   center-stage bidding controls below it — it used to sit bottom-center,
+   directly overlapping both. */
 .rareEventBanner {
   position: fixed;
-  left: 50%;
-  bottom: var(--kd-space-6);
-  transform: translateX(-50%);
+  right: var(--kd-space-5);
+  top: 72px;
   z-index: 50;
   overflow: hidden;
-  max-width: 480px;
+  max-width: 360px;
   width: calc(100% - var(--kd-space-6));
   background: var(--kd-surface-alt);
   border: 2px solid var(--kd-accent-yellow);
@@ -326,6 +328,47 @@
 .rareEventBody {
   position: relative;
   font-size: 14px;
+  font-weight: 600;
+  color: var(--kd-text);
+}
+
+/* Action-error banner: a rejected action (stale session, invalid move,
+   ...) previously had no visible surface at all during gameplay. Anchored
+   top-center, clear of both the rare-event corner banner and the
+   self-rail/bidding controls below. */
+.actionErrorBanner {
+  position: fixed;
+  left: 50%;
+  top: 72px;
+  transform: translateX(-50%);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--kd-space-1);
+  max-width: 420px;
+  width: calc(100% - var(--kd-space-6));
+  background: var(--kd-surface-alt);
+  border: 2px solid var(--kd-accent-pink);
+  border-radius: var(--kd-radius-lg);
+  padding: var(--kd-space-3) var(--kd-space-4);
+  box-shadow: 0 0 var(--kd-glow-radius-md)
+    color-mix(in oklch, var(--kd-accent-pink) var(--kd-glow-strength), transparent);
+  font-family: var(--kd-font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.actionErrorLabel {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kd-accent-pink);
+  font-weight: 700;
+}
+
+.actionErrorBody {
+  font-size: 13px;
   font-weight: 600;
   color: var(--kd-text);
 }

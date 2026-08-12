@@ -383,6 +383,14 @@ export class GameRoom {
     return player;
   }
 
+  /** Used to validate a reconnecting socket's cached playerId before
+   * re-registering it (see `state:resync`) — `getViewFor` never throws
+   * for an unknown id (it just renders as a no-match), so callers that
+   * need a real existence check use this instead. */
+  hasPlayer(id: string): boolean {
+    return this.players.some((p) => p.id === id);
+  }
+
   private requireActionable(): void {
     if (this.status !== 'in_progress') {
       throw new Error('The game is not in progress.');

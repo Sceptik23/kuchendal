@@ -65,6 +65,37 @@ const DISTINCTION_LABELS: Record<DistinctionEntry["key"], { title: string; descr
 };
 
 const RARE_EVENT_BANNER_DURATION_MS = 4000;
+const ACTION_ERROR_BANNER_DURATION_MS = 6000;
+
+/**
+ * A rejected action (e.g. `error:action` from a stale/reconnected socket,
+ * or any other server-side validation failure) previously had nowhere to
+ * render during actual gameplay — the store's `error` field was only ever
+ * read by Hub/Lobby, so a failed bid, pass, or seller decision here failed
+ * completely silently, reading to the player as "the game randomly did
+ * something wrong". Auto-dismisses, and is also manually dismissible.
+ */
+function ActionErrorBanner({
+  message,
+  onDismiss,
+}: {
+  message: string | null;
+  onDismiss: () => void;
+}) {
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(onDismiss, ACTION_ERROR_BANNER_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [message, onDismiss]);
+
+  if (!message) return null;
+  return (
+    <button type="button" className={styles.actionErrorBanner} onClick={onDismiss}>
+      <span className={styles.actionErrorLabel}>Action refusée</span>
+      <span className={styles.actionErrorBody}>{message}</span>
+    </button>
+  );
+}
 
 /**
  * Shows the most recent rare event as a brief banner (06_AUDIO_VFX.md §3:
@@ -178,7 +209,10 @@ function rankColor(rank: number): string {
 export function GameTable() {
   const state = useGameStore((s) => s.state);
   const playerId = useGameStore((s) => s.playerId);
+  const roomCode = useGameStore((s) => s.roomCode);
   const leave = useGameStore((s) => s.leave);
+  const actionError = useGameStore((s) => s.error);
+  const clearActionError = useGameStore((s) => s.clearError);
   const eventFeedEntries = useEventFeed(state);
   const familyGlow = useFamilyGlow(state, playerId);
 
@@ -282,7 +316,10 @@ export function GameTable() {
           type="button"
           className={styles.resyncButton}
           title="Si la partie semble bloquée, ça re-synchronise ton écran avec l'état réel du serveur."
-          onClick={() => getSocket().emit("state:resync")}
+          onClick={() => {
+            if (!roomCode || !playerId) return;
+            getSocket().emit("state:resync", { roomCode, playerId });
+          }}
         >
           ↻ Actualiser
         </button>
@@ -437,6 +474,7 @@ export function GameTable() {
       )}
 
       <RareEventBanner state={state} />
+      <ActionErrorBanner message={actionError} onDismiss={clearActionError} />
 
       {animalGhosts.map((g) => (
         <TransferGhost

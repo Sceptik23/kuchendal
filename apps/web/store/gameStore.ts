@@ -29,10 +29,23 @@ interface GameStore {
   leave: () => void;
 }
 
-export const useGameStore = create<GameStore>((set) => {
+export const useGameStore = create<GameStore>((set, get) => {
   const socket = getSocket();
 
-  socket.on("connect", () => set({ connected: true }));
+  socket.on("connect", () => {
+    set({ connected: true });
+    // socket.io hands out a brand-new socket.id on every reconnect (WiFi
+    // blip, tab backgrounded, laptop sleep) — the server only knows this
+    // socket by its OLD id, so a reconnected client is otherwise invisible
+    // to its room forever after (missing every future broadcast with no
+    // visible error). Re-announce the cached session so the server can
+    // re-map it; harmless/no-op on the very first connect (roomCode/
+    // playerId aren't set yet).
+    const { roomCode, playerId } = get();
+    if (roomCode && playerId) {
+      socket.emit("state:resync", { roomCode, playerId });
+    }
+  });
   socket.on("disconnect", () => set({ connected: false }));
   socket.on("state:update", (state) => set({ state }));
   socket.on("error:action", (payload) => set({ error: payload.message }));
