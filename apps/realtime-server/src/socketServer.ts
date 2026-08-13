@@ -32,7 +32,19 @@ export function createSocketServer(
    */
   corsOrigin: string = process.env["CORS_ORIGIN"] ?? "*",
 ): AppServer {
-  const io: AppServer = new Server(httpServer, { cors: { origin: corsOrigin } });
+  const io: AppServer = new Server(httpServer, {
+    cors: { origin: corsOrigin },
+    // Tighter than the socket.io defaults (25s/20s, ~45s worst case): a
+    // connection silently dropped by a proxy or idle timeout otherwise
+    // sits undetected on both ends for a long stretch — the client thinks
+    // it's still connected (so no reconnect, no session re-registration)
+    // and the server never frees its socketInfoBySocketId entry. Halving
+    // this materially shortens how long a player can be stuck looking at
+    // a frozen game before the client's own heartbeat notices and
+    // reconnects on its own.
+    pingInterval: 10000,
+    pingTimeout: 8000,
+  });
   const socketInfoBySocketId = new Map<string, SocketInfo>();
 
   function broadcastRoom(roomCode: string, room: GameRoom): void {

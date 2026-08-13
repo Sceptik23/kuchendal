@@ -318,7 +318,20 @@ export function GameTable() {
           title="Si la partie semble bloquée, ça re-synchronise ton écran avec l'état réel du serveur."
           onClick={() => {
             if (!roomCode || !playerId) return;
-            getSocket().emit("state:resync", { roomCode, playerId });
+            // Deliberately don't just emit("state:resync") on the existing
+            // socket: `socket.connected` can still read `true` on a zombie
+            // connection — the underlying transport silently died (proxy
+            // drop, idle timeout) but socket.io's own ping heartbeat
+            // hasn't noticed yet, which can take up to ~45s by default.
+            // Emitting on a zombie socket like that is swallowed with no
+            // error, which is why this button could previously look like
+            // it did nothing. Forcing a hard reconnect guarantees a fresh
+            // transport regardless; gameStore's "connect" handler
+            // re-announces the cached session automatically once it
+            // succeeds, so no separate emit is needed here.
+            const socket = getSocket();
+            socket.disconnect();
+            socket.connect();
           }}
         >
           ↻ Actualiser
